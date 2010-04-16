@@ -233,7 +233,6 @@
     <MonoDevelop>
       <Properties>
         <Policies>
-          <StandardHeader inheritsSet="GPLv3License" />
           <VersionControlPolicy inheritsSet="Mono" />
           <ChangeLogPolicy inheritsSet="Mono" />
         </Policies>

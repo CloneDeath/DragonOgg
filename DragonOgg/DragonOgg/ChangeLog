@@ -1,5 +1,15 @@
 2010-04-16  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
+	* OggFile.cs:
+	* MiscStuff.cs:
+	* OggPlayer.cs:
+	* OggPlaylist.cs: Fixed license text (Incorrectly saying
+	  GPLv3, should say LGPL)
+
+	* DragonOgg.csproj: 
+
+2010-04-16  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
 	* csogg:
 	* csvorbis:
 	* OggFile.cs:
