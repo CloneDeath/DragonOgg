@@ -1,0 +1,20 @@
+2010-04-16  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* Tag.cs:
+	* File.cs:
+	* Genres.cs:
+	* ICodec.cs:
+	* Picture.cs:
+	* ListBase.cs:
+	* FileTypes.cs:
+	* ByteVector.cs:
+	* Properties.cs:
+	* StringList.cs:
+	* TagLib.sources:
+	* CombinedTag.cs:
+	* ByteVectorList.cs:
+	* SupportedMimeType.cs:
+	* ReadOnlyByteVector.cs:
+	* CorruptFileException.cs:
+	* UnsupportedFormatException.cs: 
+
