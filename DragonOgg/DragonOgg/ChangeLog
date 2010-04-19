@@ -1,3 +1,11 @@
+2010-04-19  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* OggPlaylistWriter.cs: Implemented OggPlaylistWriter
+	  interface and added stub classes/methods for PLS & M3U
+	  playlist writers
+
+	* OggPlaylist.cs: Tidied up comments & constructor method
+
 2010-04-16  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
 	* OggFile.cs:

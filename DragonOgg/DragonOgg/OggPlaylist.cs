@@ -22,14 +22,10 @@ using System;
 
 namespace DragonOgg
 {
-	/*
-	 * OggPlaylist class
-	 * This object contains a collection of OggFile objects for use with an OggPlayer
-	 * OggPlayer objects that are playing a playlist have additional capabilities related
-	 * to track changing/seeking
-	 * The OggPlaylist can also read and write M3U and PLS files
-	 */
 
+	/// <summary>
+	/// Class to handle the playing and in-memory storage of playlists
+	/// </summary>
 	public class OggPlaylist
 	{
 
@@ -38,22 +34,36 @@ namespace DragonOgg
 		}
 	}
 	
-	/*
-	 * OggPlaylistFile class
-	 * This object contains additional details about an OggFile for use within the OggPlaylist object
-	 */
+	/// <summary>
+	/// Contains an OggFile and additional information pertaining to it's position within a playlist
+	/// </summary>
 	public class OggPlaylistFile : IComparable
 	{
-		public OggFile File;	// The ogg file itself
-		public bool Played;	// Whether the file has been played
-		public int OrderNum;	// The order of the file within the playlist
+		private OggFile m_File;	// The ogg file itself
+		private bool m_Played;	// Whether the file has been played
+		private int m_OrderNum;	// The order of the file within the playlist
 		
+		public OggFile File { get { return m_File; } set { m_File = value; } }
+		public bool Played { get { return m_Played; } set { m_Played = value; } }
+		public int OrderNum { get { return m_OrderNum; } set { m_OrderNum = value; } }
+		
+		/// <summary>
+		/// Constructor for the OggPlaylistFile object
+		/// </summary>
+		/// <param name="f">
+		/// An <see cref="OggFile"/> containing the file associated with this OggPlaylistFile
+		/// </param>
+		/// <param name="Order">
+		/// A <see cref="System.Int32"/> containg a value indicating it's order
+		/// </param>
 		OggPlaylistFile(OggFile f, int Order)
 		{
-			File = f; OrderNum = Order;
+			m_File = f; m_OrderNum = Order; m_Played = false;
 		}
 		
-		// Compare the OrderNum
+		/// <summary>
+		/// Implementation of IComparable.CompareTo interface
+		/// </summary>
 		int IComparable.CompareTo (object obj)
 		{
 			if (typeof(object)!=typeof(OggPlaylistFile)) { throw new System.InvalidCastException("OggPlaylistFile:CompareTo obj not an OggPlaylistFile"); }
