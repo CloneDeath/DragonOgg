@@ -1,3 +1,9 @@
+2010-04-23  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* LGPL:
+	* DragonOgg.csproj:
+	* OpenTK-License.txt: 
+
 2010-04-19  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
 	* OggPlaylistWriter.cs: Implemented OggPlaylistWriter

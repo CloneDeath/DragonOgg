@@ -208,6 +208,7 @@
     <Compile Include="TagLibSharp\FileTypes.cs" />
     <Compile Include="TagLibSharp\CorruptFileException.cs" />
     <Compile Include="MiscStuff.cs" />
+    <Compile Include="OggPlaylistWriter.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -241,5 +242,8 @@
   </ProjectExtensions>
   <ItemGroup>
     <None Include="TagLibSharp\TagLib.sources" />
+    <None Include="..\DragonOgg-README" />
+    <None Include="LGPL" />
+    <None Include="OpenTK-License.txt" />
   </ItemGroup>
 </Project>
