@@ -21,6 +21,7 @@
 
 using System;
 using System.IO;
+using System.Collections.Generic;
 using csvorbis;
 using TagLib;
 using OpenTK.Audio.OpenAL;
@@ -104,7 +105,7 @@ namespace DragonOgg
 		/// <returns>
 		/// A <see cref="System.String"/> containing the data in the tag
 		/// </returns>
-		public string GetTag(OggTags TagID)
+		public string GetQuickTag(OggTags TagID)
 		{
 			switch (TagID)
 			{
@@ -114,9 +115,8 @@ namespace DragonOgg
 			case OggTags.Genre: return m_TagLibFile.Tag.FirstGenre;
 			case OggTags.TrackNumber: return m_TagLibFile.Tag.Track.ToString();
 			case OggTags.Filename: return m_Filename;
-			case OggTags.HumanReadableBitrate: return OggUtilities.MakeHumanReadable(m_Bitrate, "bit/s");
+			case OggTags.Bitrate: return m_Bitrate.ToString();
 			case OggTags.Length: return m_LengthTime.ToString();
-			case OggTags.HumanReadableLength: return OggUtilities.MakeHumanReadableTime(m_LengthTime);
 			default: return null;
 			}
 			
@@ -134,7 +134,7 @@ namespace DragonOgg
 		/// <returns>
 		/// A <see cref="OggTagWriteCommandReturn"/> indicating the result of the operation
 		/// </returns>
-		public OggTagWriteCommandReturn SetTag(OggTags TagID, string Value)
+		public OggTagWriteCommandReturn SetQuickTag(OggTags TagID, string Value)
 		{
 			switch (TagID)
 			{
@@ -144,12 +144,214 @@ namespace DragonOgg
 			case OggTags.Genre: m_TagLibFile.Tag.Genres = new string[] { Value }; break;
 			case OggTags.TrackNumber: m_TagLibFile.Tag.Track = uint.Parse(Value); break;
 			case OggTags.Filename: return OggTagWriteCommandReturn.ReadOnlyTag;
-			case OggTags.HumanReadableBitrate: return OggTagWriteCommandReturn.ReadOnlyTag;
+			case OggTags.Bitrate: return OggTagWriteCommandReturn.ReadOnlyTag;
 			case OggTags.Length: return OggTagWriteCommandReturn.ReadOnlyTag;
 			default: return OggTagWriteCommandReturn.UnknownTag;
 			}
 			try { m_TagLibFile.Save(); } catch (Exception ex) { return OggTagWriteCommandReturn.Error; }
 			return OggTagWriteCommandReturn.Success;
+		}
+		
+		/// <summary>
+		/// Retrieve a tag with an arbitrary name.
+		/// Returns an empty tag if the value isn't found or if no Xiph tags are present.
+		/// </summary>
+		/// <param name="TagName">
+		/// A <see cref="System.String"/> containing the name of the tag to find
+		/// </param>
+		/// <returns>
+		/// An <see cref="OggTag"/> containing the returned tag
+		/// </returns>
+		public OggTag GetTag(string TagName)
+		{
+			if (TagName.Length<=0) { return OggUtilities.GetEmptyTag(); } // Save some processing time and just exit if we haven't been given a tag name
+			// Based on tasty examples @ "Accessing Hidden Gems": http://developer.novell.com/wiki/index.php/TagLib_Sharp:_Examples
+			TagLib.Ogg.XiphComment XC = (TagLib.Ogg.XiphComment) m_TagLibFile.GetTag(TagTypes.Xiph);
+			if (XC != null)
+			{
+				string[] TagValue = XC.GetField(TagName);
+				if (TagValue.Length==0)
+				{
+					// Tag doesn't exist, return empty
+					return OggUtilities.GetEmptyTag();
+				}
+				else
+				{
+					OggTag tmpTag;
+					tmpTag.Name = TagName;
+					tmpTag.IsArray = (TagValue.Length>1);
+					tmpTag.IsEmpty = false;
+					tmpTag.Values = TagValue;
+					tmpTag.Value = TagValue[0];
+					return tmpTag;
+				}
+			} 
+			else 
+			{ 
+				// No valid Xiph tags found
+				return OggUtilities.GetEmptyTag(); 
+			}
+		}
+		
+		/// <summary>
+		/// Retrieve an array of all tag values
+		/// Returns a zero-length array if no Xiph tags are found
+		/// </summary>
+		/// <returns>
+		/// An <see cref="OggTag[]"/> containing the returned values
+		/// </returns>
+		public OggTag[] GetTags()
+		{
+			TagLib.Ogg.XiphComment XC = (TagLib.Ogg.XiphComment) m_TagLibFile.GetTag(TagTypes.Xiph);
+			if (XC != null)
+			{
+				if (XC.FieldCount>0)
+				{
+					OggTag[] tmpOggTag = new OggTag[XC.FieldCount];
+					int Index = 0;
+					foreach (string FieldName in XC) 
+					{
+						string[] TagValue = XC.GetField(FieldName);
+						if (TagValue.Length==0)
+						{
+							tmpOggTag[Index] = OggUtilities.GetEmptyTag();		// This should never happen, but I bet if I don't check it it will!
+						}
+						else
+						{	
+							// Populate this tag
+							tmpOggTag[Index].Name = FieldName;
+							tmpOggTag[Index].IsArray = (TagValue.Length>1);
+							tmpOggTag[Index].IsEmpty = false;
+							tmpOggTag[Index].Values = TagValue;
+							tmpOggTag[Index].Value = TagValue[0];
+						}
+						++Index;	// Increment the index so we know which OggTag we're molesting
+					}
+					// Done! Return the heap of tags
+					return tmpOggTag;
+				}
+				else
+				{
+					// Xiph tags contain no items
+					return new OggTag[0];
+				}
+			}
+			else
+			{
+				// No valid Xiph tags found
+				return new OggTag[0];
+			}
+		}
+		
+		/// <summary>
+		/// Write a single Xiph tag to the file
+		/// This will overwrite the tag if it already exists, or create it if it doesn't
+		/// It will also create the Xiph tag block within the file if it doesn't already have one
+		/// This function writes to disk. If setting multiple tags consider using SetTags(OggTag[] Tags) to reduce the number of write operations
+		/// If setting an array, Tag.Values must contain at least one item. Tag.Value is ignored in this case
+		/// If setting a single value, Tag.Value must contain at least one character. Tag.Values is ignored in this case
+		/// </summary>
+		/// <param name="Tag">
+		/// The <see cref="OggTag"/> to write
+		/// </param>
+		/// <returns>
+		/// An <see cref="OggTagWriteCommandReturn"/> indicating the result of the operation
+		/// </returns>
+		public OggTagWriteCommandReturn SetTag(OggTag Tag)
+		{
+			// Validate Tag
+			if (Tag.IsEmpty) { return OggTagWriteCommandReturn.InvalidValue; }
+			if (Tag.Name.Length<=0) { return OggTagWriteCommandReturn.UnknownTag; }
+			if (Tag.IsArray) { if (Tag.Values.Length<=0) { return OggTagWriteCommandReturn.InvalidValue; }	} else { if (Tag.Value.Length<=0) { return OggTagWriteCommandReturn.InvalidValue; } }
+			// Tag valid, try and write it
+			TagLib.Ogg.XiphComment XC = (TagLib.Ogg.XiphComment) m_TagLibFile.GetTag(TagTypes.Xiph, true);
+			if (XC != null)
+			{
+				string[] tmpStrArray;
+				if (Tag.IsArray) { tmpStrArray = Tag.Values; } else { tmpStrArray = new string[1]; tmpStrArray[1] = Tag.Value; }
+				// Set field
+				XC.SetField(Tag.Name, tmpStrArray);
+				// Copy the XC instance into our file (not sure if this is needed)
+				XC.CopyTo(m_TagLibFile.Tag, true);
+				// Commit
+				m_TagLibFile.Save();
+				return OggTagWriteCommandReturn.Success;
+			}
+			else
+			{
+				// If we're null something went wrong (we tried to create the XiphComment block and it failed probably)
+				return OggTagWriteCommandReturn.Error;
+			}
+		}
+		
+		/// <summary>
+		/// Write multiple Xiph tags to the file
+		/// This will overwrite any existing tags, and create them if they don't exist
+		/// It will also create the Xiph tag block within the file if it doesn't already have one
+		/// This function writes to disk. If setting only a single tag, consider using SetTag(OggTag Tag) to reduce the array handling overheads
+		/// If setting an array value Tags[i].Values must contain at least one item. Tags[i].Value is ignored in this case
+		/// If setting a single value, Tags[i].Value must contain at least one character. Tags[i].Values is ignored in this case
+		/// This function will abort (and not write) if any tag is invalid. Use SetTags(OggTag[] Tags, bool AbortOnError) to override this behaviour
+		/// </summary>
+		/// <param name="Tags">
+		/// An <see cref="OggTag[]"/> containing the tags to be written
+		/// </param>
+		/// <returns>
+		/// An <see cref="OggTagWriteCommandReturn"/> indicating the result of the operation
+		/// </returns>
+		public OggTagWriteCommandReturn SetTags(OggTag[] Tags)
+		{
+			return SetTags(Tags, true);
+		}
+		
+		/// <summary>
+		/// Write multiple Xiph tags to the file
+		/// This will overwrite any existing tags, and create them if they don't exist
+		/// It will also create the Xiph tag block within the file if it doesn't already have one
+		/// This function writes to disk. If setting only a single tag, consider using SetTag(OggTag Tag) to reduce the array handling overheads
+		/// If setting an array value Tags[i].Values must contain at least one item. Tags[i].Value is ignored in this case
+		/// If setting a single value, Tags[i].Value must contain at least one character. Tags[i].Values is ignored in this case
+		/// If AbortOnError is true, this function will abort (and not write) if any item in the Tags array is invalid.
+		/// If AbortOnError is false, this function will continue (and write) if items in the Tags array are invalid. It will still abort (and not write) if there are other errors.
+		/// </summary>
+		/// <param name="Tags">
+		/// An <see cref="OggTag[]"/> containing the tags to be written
+		/// </param>
+		/// <param name="AbortOnError">
+		/// A <see cref="System.bool"/> indicating whether to invalid items in the Tags array.
+		/// <returns>
+		/// An <see cref="OggTagWriteCommandReturn"/> indicating the result of the operation
+		/// </returns>
+		public OggTagWriteCommandReturn SetTags(OggTag[] Tags, bool AbortOnError)
+		{
+			// Check that the Tags array has at least one item in it
+			if (Tags.Length<1) { return OggTagWriteCommandReturn.UnknownTag; }
+			TagLib.Ogg.XiphComment XC = (TagLib.Ogg.XiphComment) m_TagLibFile.GetTag(TagTypes.Xiph, true);
+			if (XC != null)
+			{
+				// Write the tags to the 'virtual' file
+				foreach (OggTag Tag in Tags)
+				{
+					// Validate tag
+					if (Tag.IsEmpty) { if (AbortOnError) { return OggTagWriteCommandReturn.InvalidValue; } else { continue; } }
+					if (Tag.Name.Length<=0) { if (AbortOnError) { return OggTagWriteCommandReturn.UnknownTag; } else { continue; } }
+					if (Tag.IsArray) { if (Tag.Values.Length<=0) { if (AbortOnError) {  return OggTagWriteCommandReturn.InvalidValue; } else { continue; } } } else { if (Tag.Value.Length<=0) { if (AbortOnError) { return OggTagWriteCommandReturn.InvalidValue; } else { continue; } } }
+					string[] tmpStrArray;
+					if (Tag.IsArray) { tmpStrArray = Tag.Values; } else { tmpStrArray = new string[1]; tmpStrArray[0] = Tag.Value; }
+					// Write tag
+					XC.SetField(Tag.Name, tmpStrArray);
+				}
+				// Copy the XC instance into our file (not sure if this is needed)
+				XC.CopyTo(m_TagLibFile.Tag, true);
+				// Save to disk
+				m_TagLibFile.Save();
+				return OggTagWriteCommandReturn.Success;
+			}
+			else
+			{
+				// If we're null something went wrong (we tried to create the XiphComment block and it failed probably)
+				return OggTagWriteCommandReturn.Error;
+			}
 		}
 		
 		/// <summary>

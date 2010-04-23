@@ -59,7 +59,7 @@ namespace DragonOgg
 		public OggFile CurrentFile { get { return m_CurrentFile; } }
 		public ALError LastALError { get { return m_LastError; } }
 		public float TimeCurrent { get { return m_TimeOffset; } }
-		public float TimeMax { get { return float.Parse(m_CurrentFile.GetTag(OggTags.Length)); } }
+		public float TimeMax { get { return float.Parse(m_CurrentFile.GetQuickTag(OggTags.Length)); } }
 		public int UpdateDelay { get { return m_UpdateDelay; } set { m_UpdateDelay = value; } }
 				
 		/// <summary>

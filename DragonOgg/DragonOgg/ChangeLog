@@ -1,5 +1,13 @@
 2010-04-23  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
+	* OggFile.cs: Complete re-write of Tag handling. Added new tag
+	  functions
+
+	* OggPlayer.cs:
+	* MiscStuff.cs: Changes to reflect alterations in tag handling
+
+2010-04-23  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
 	* LGPL:
 	* DragonOgg.csproj:
 	* OpenTK-License.txt: 

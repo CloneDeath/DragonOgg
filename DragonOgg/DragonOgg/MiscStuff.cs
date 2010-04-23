@@ -28,7 +28,7 @@ namespace DragonOgg
 	/// <summary>
 	/// Enumeration of valid tags for reading and editting tags
 	/// </summary>
-	public enum OggTags { Title=0, Artist, Album, Genre, TrackNumber, HumanReadableBitrate, Length, HumanReadableLength, Filename }
+	public enum OggTags { Title=0, Artist, Album, Genre, TrackNumber, Bitrate, Length, Filename }
 	
 	/// <summary>
 	/// Enumeration of the return values from the OggFile.SetTag method
@@ -48,6 +48,19 @@ namespace DragonOgg
 		public int BufferLength;	// Number of bytes requested (maximum size of Buffer)
 		public int ReturnValue;	// The return value of the read operation
 		public int RateHz;			// The nominal bitrate of the buffered data
+	}
+	
+	/// <summary>
+	/// Structure containing data about a tag
+	/// Value contains the value of the tag or the first item of the array if an array
+	/// </summary>
+	public struct OggTag
+	{
+		public string Name;
+		public string Value;
+		public string[] Values;
+		public bool IsArray;
+		public bool IsEmpty;
 	}
 	
 	/// <summary>
@@ -201,9 +214,8 @@ namespace DragonOgg
 			case OggTags.Artist: return "Artist";
 			case OggTags.Filename: return "Filename";
 			case OggTags.Genre: return "Genre";
-			case OggTags.HumanReadableBitrate: return "Bitrate";
-			case OggTags.HumanReadableLength: return "Length";
-			case OggTags.Length: return "Length in seconds";
+			case OggTags.Bitrate: return "Bitrate";
+			case OggTags.Length: return "Length";
 			case OggTags.Title: return "Title";
 			case OggTags.TrackNumber: return "Track Number";
 			default: return "Unknown Tag Identity Value";
@@ -230,6 +242,17 @@ namespace DragonOgg
 			case OggTagWriteCommandReturn.UnknownTag: return "Tag ID not recognised";
 			default: return "Unknown Tag Write Command Return Value";
 			}
+		}
+		
+		static public OggTag GetEmptyTag()
+		{
+			OggTag tmp;
+			tmp.IsArray = false;
+			tmp.IsEmpty = true;
+			tmp.Name = "";
+			tmp.Value = "";
+			tmp.Values = null;
+			return tmp;
 		}
 	}
 
