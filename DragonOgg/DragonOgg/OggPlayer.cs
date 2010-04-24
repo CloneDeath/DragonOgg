@@ -210,7 +210,7 @@ namespace DragonOgg
 		// Player thread
 		private void Player_Thread()
 		{
-			bool Running = true;
+			bool Running = true; bool ReachedEOF = false;
 			if (PlaybackStarted!=null) { PlaybackStarted(this, new EventArgs()); }
 			while (Running)
 			{
@@ -219,6 +219,25 @@ namespace DragonOgg
 				{
 					lock (SourceControl)
 					{
+						if (ReachedEOF)
+						{
+							// We've come to the end of the file, just see if there are any buffers left in the queue
+							int QueuedBuffers = 0;
+							AL.GetSource(m_Source, ALGetSourcei.BuffersQueued, out QueuedBuffers);
+							if (QueuedBuffers>0) 
+							{
+								// We want to remove the buffers, so carry on to the usual playing section
+							}
+							else
+							{
+								// End of file & all buffers played, exit.
+								Running = false;
+								SetState(OggPlayerStatus.Stopped);
+								if (AL.GetSourceState(m_Source)!=ALSourceState.Stopped) { AL.SourceStop(m_Source); }
+								if (PlaybackFinished!=null) { PlaybackFinished(this, new EventArgs()); }
+								return;
+							}
+						}
 						int ProcessedBuffers = 0; uint BufferRef=0;
 						AL.GetSource(m_Source, ALGetSourcei.BuffersProcessed, out ProcessedBuffers);
 						bool UnderRun = false;
@@ -232,6 +251,7 @@ namespace DragonOgg
 						{
 							// For each buffer thats been processed, reload and queue a new one
 							AL.SourceUnqueueBuffers(m_Source, 1, ref BufferRef);
+							if (ReachedEOF) { --ProcessedBuffers; continue; }	// If we're at the EOF loop to the next buffer here - we don't want to be trying to fill any more
 							OggBufferSegment obs = m_CurrentFile.GetBufferSegment(m_BufferSize);	// Get chunk of tasty buffer data with the configured segment
 							// Check the buffer segment for errors
 							if (obs.ReturnValue>0)
@@ -244,12 +264,8 @@ namespace DragonOgg
 							{
 								if (obs.ReturnValue==0)
 								{
-									// EOF - We just drop out here instead of doin' anything shiny
-									Running = false;
-									AL.SourceStop(m_Source);
-									m_CurrentFile.ResetFile();
-									SetState(OggPlayerStatus.Stopped);
-									if (PlaybackFinished!=null) { PlaybackFinished(this, new EventArgs()); }
+									// End of file
+									ReachedEOF = true;
 									break;
 								}
 								else
