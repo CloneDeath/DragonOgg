@@ -64,8 +64,8 @@ namespace DragonOgg
 		public float TimeCurrent { get { return m_TimeOffset; } }
 		public float TimeMax { get { return float.Parse(m_CurrentFile.GetQuickTag(OggTags.Length)); } }
 		public int UpdateDelay { get { return m_UpdateDelay; } set { m_UpdateDelay = value; } }
-		public int BufferSize { get { return m_BufferCount; } }
-		public int BufferCount { get { return m_BufferSize; } }
+		public int BufferSize { get { return m_BufferSize; } }
+		public int BufferCount { get { return m_BufferCount; } }
 				
 		/// <summary>
 		/// Constructor
@@ -76,7 +76,7 @@ namespace DragonOgg
 			
 			m_UpdateDelay = 10;
 			m_Context = new AudioContext();			// Initialise the AudioContext
-			m_BufferCount = 16;
+			m_BufferCount = 32;
 			m_BufferSize = 4096;
 			m_Buffers = new uint[m_BufferCount];				// We're using four buffers so we always have a supply of data
 		}

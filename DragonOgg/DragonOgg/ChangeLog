@@ -1,5 +1,12 @@
 2010-04-24  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
+	* OggPlayer.cs: Fixed BufferSize & BufferCount property
+	  declarations to return the correct values
+	Changed default number of buffers to 32, up from 16 (Default
+	  buffer size still 4096)
+
+2010-04-24  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
 	* OggPlayer.cs: Added support for changing buffer size &
 	  number at runtime
 	Fixed 'Null Reference' bug caused by trying to raise events
