@@ -355,6 +355,68 @@ namespace DragonOgg
 		}
 		
 		/// <summary>
+		/// Remove a tag from the file.
+		/// This command writes to disk.
+		/// </summary>
+		/// <param name="TagName">
+		/// A <see cref="System.String"/> indicating which tag to remove
+		/// </param>
+		/// <returns>
+		/// An <see cref="OggTagWriteCommandReturn"/> indicating the result of the operation
+		/// </returns>
+		public OggTagWriteCommandReturn RemoveTag(string TagName)
+		{
+			// Check that the tag name contains at least one character
+			if (TagName.Length<1) { return OggTagWriteCommandReturn.UnknownTag; }
+			TagLib.Ogg.XiphComment XC = (TagLib.Ogg.XiphComment) m_TagLibFile.GetTag(TagTypes.Xiph, false);
+			if (XC != null)
+			{
+				// Remove the tag
+				XC.RemoveField(TagName);
+				// Copy the XC instance into our file (might need to clear the Xiph block first, but we'll see)
+				XC.CopyTo(m_TagLibFile.Tag, true);
+				// Save
+				m_TagLibFile.Save();
+				return OggTagWriteCommandReturn.Success;
+			}
+			else
+			{
+				// Either there isn't a Xiph comment block or something went wrong
+				return OggTagWriteCommandReturn.Error;
+			}
+			
+		}
+		/// <summary>
+		/// Remove a tag from the file.
+		/// This command writes to disk.
+		/// </summary>
+		/// <param name="TagName">
+		/// An <see cref="OggTag"/> indicating which tag to remove
+		/// </param>
+		/// <returns>
+		/// An <see cref="OggTagWriteCommandReturn"/> indicating the result of the operation
+		/// </returns>
+		public OggTagWriteCommandReturn RemoveTag(OggTag Tag)
+		{
+			return this.RemoveTag(Tag.Name);	
+		}
+		
+		/// <summary>
+		/// Strip all tags from the file.
+		/// This command writes to disk.
+		/// </summary>
+		/// <returns>
+		/// An <see cref="OggTagWriteCommandReturn"/> indicating the result of the operation
+		/// </returns>
+		public OggTagWriteCommandReturn RemoveAllTags()
+		{
+			// Dead simple (in theory)
+			m_TagLibFile.RemoveTags(TagTypes.AllTags);
+			// Done?
+			return OggTagWriteCommandReturn.Success;
+		}
+		
+		/// <summary>
 		/// Get the next segment of Ogg data decoded into PCM format
 		/// </summary>
 		/// <param name="SegmentLength">
