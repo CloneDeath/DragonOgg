@@ -66,6 +66,11 @@ namespace DragonOgg
 		public int UpdateDelay { get { return m_UpdateDelay; } set { m_UpdateDelay = value; } }
 		public int BufferSize { get { return m_BufferSize; } }
 		public int BufferCount { get { return m_BufferCount; } }
+		
+		/// <summary>
+		/// How much of the file has elapsed. Returns a float between 0 & 1
+		/// </summary>
+		public float FractionElapsed { get { float FE = m_TimeOffset/float.Parse(m_CurrentFile.GetQuickTag(OggTags.Length)); if (FE>1) { return 1; } else if (FE<0) { return 0; } else { return FE; } } }
 				
 		/// <summary>
 		/// Constructor

@@ -1,5 +1,10 @@
 2010-04-24  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
+	* OggPlayer.cs: Added FractionElapsed property to simplify
+	  creation of progress bars in developed applications
+
+2010-04-24  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
 	* OggPlayer.cs: Bugfix: Changed handling of EOF to prevent
 	  cutting off when buffer size and/or count is very large
 
