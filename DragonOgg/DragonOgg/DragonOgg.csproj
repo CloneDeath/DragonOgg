@@ -243,7 +243,11 @@
   <ItemGroup>
     <None Include="TagLibSharp\TagLib.sources" />
     <None Include="..\DragonOgg-README" />
-    <None Include="LGPL" />
-    <None Include="OpenTK-License.txt" />
+    <None Include="LGPL">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="OpenTK-License.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>
