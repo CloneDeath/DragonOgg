@@ -42,6 +42,7 @@ namespace DragonOgg
 		
 		// Yummy events
 		public event EventHandler StateChanged;
+		public event EventHandler BufferUnderrun;
 		public event EventHandler PlaybackStarted;
 		public event EventHandler PlaybackFinished;
 		
@@ -53,6 +54,8 @@ namespace DragonOgg
 		private uint m_Source;
 		private ALError m_LastError;
 		private uint[] m_Buffers;
+		private int m_BufferCount;
+		private int m_BufferSize;
 				
 		// Property exposure
 		public OggPlayerStatus PlayerState { get { return m_PlayerState; } }
@@ -61,6 +64,8 @@ namespace DragonOgg
 		public float TimeCurrent { get { return m_TimeOffset; } }
 		public float TimeMax { get { return float.Parse(m_CurrentFile.GetQuickTag(OggTags.Length)); } }
 		public int UpdateDelay { get { return m_UpdateDelay; } set { m_UpdateDelay = value; } }
+		public int BufferSize { get { return m_BufferCount; } }
+		public int BufferCount { get { return m_BufferSize; } }
 				
 		/// <summary>
 		/// Constructor
@@ -71,8 +76,29 @@ namespace DragonOgg
 			
 			m_UpdateDelay = 10;
 			m_Context = new AudioContext();			// Initialise the AudioContext
-			m_Buffers = new uint[16];				// We're using four buffers so we always have a supply of data
+			m_BufferCount = 16;
+			m_BufferSize = 4096;
+			m_Buffers = new uint[m_BufferCount];				// We're using four buffers so we always have a supply of data
 		}
+		
+		/// <summary>
+		/// Function for configuring buffer settings
+		/// </summary>
+		/// <param name="NumberOfBuffers">
+		/// A <see cref="System.Int32"/>
+		/// </param>
+		/// <param name="BufferSize">
+		/// A <see cref="System.Int32"/>
+		/// </param>
+		public OggPlayerCommandReturn SetBufferInfo(int NumberOfBuffers, int BufferSize)
+		{
+			if (!((m_PlayerState==OggPlayerStatus.Stopped)||(m_PlayerState==OggPlayerStatus.Waiting))) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
+			m_BufferCount = NumberOfBuffers;
+			m_BufferSize = BufferSize;
+			m_Buffers = new uint[m_BufferCount];
+			return OggPlayerCommandReturn.Success;
+		}
+		
 		
 		/// <summary>
 		/// Destructor
@@ -85,12 +111,11 @@ namespace DragonOgg
 			m_Context.Dispose();	
 		}
 		
-		
 		// State change handler
 		private void SetState(OggPlayerStatus State)
 		{
 			m_PlayerState = State;
-			StateChanged(this, new EventArgs());
+			if (StateChanged!=null) { StateChanged(this, new EventArgs()); }
 		}
 		
 		/// <summary>
@@ -186,7 +211,7 @@ namespace DragonOgg
 		private void Player_Thread()
 		{
 			bool Running = true;
-			PlaybackStarted(this, new EventArgs());
+			if (PlaybackStarted!=null) { PlaybackStarted(this, new EventArgs()); }
 			while (Running)
 			{
 				// See what we're doing
@@ -196,11 +221,18 @@ namespace DragonOgg
 					{
 						int ProcessedBuffers = 0; uint BufferRef=0;
 						AL.GetSource(m_Source, ALGetSourcei.BuffersProcessed, out ProcessedBuffers);
+						bool UnderRun = false;
+						// Check for buffer underrun
+						if (ProcessedBuffers>=m_BufferCount)
+						{
+							UnderRun = true;
+							if (BufferUnderrun!=null) { BufferUnderrun(this, new EventArgs()); }
+						}
 						while (ProcessedBuffers>0)
 						{
 							// For each buffer thats been processed, reload and queue a new one
 							AL.SourceUnqueueBuffers(m_Source, 1, ref BufferRef);
-							OggBufferSegment obs = m_CurrentFile.GetBufferSegment(0);	// Get chunk of tasty buffer data with the default segment length
+							OggBufferSegment obs = m_CurrentFile.GetBufferSegment(m_BufferSize);	// Get chunk of tasty buffer data with the configured segment
 							// Check the buffer segment for errors
 							if (obs.ReturnValue>0)
 							{
@@ -217,7 +249,7 @@ namespace DragonOgg
 									AL.SourceStop(m_Source);
 									m_CurrentFile.ResetFile();
 									SetState(OggPlayerStatus.Stopped);
-									PlaybackFinished(this, new EventArgs());
+									if (PlaybackFinished!=null) { PlaybackFinished(this, new EventArgs()); }
 									break;
 								}
 								else
@@ -226,7 +258,7 @@ namespace DragonOgg
 									m_PlayerState = OggPlayerStatus.Error;
 									AL.SourceStop(m_Source);
 									Running = false;
-									PlaybackFinished(this, new EventArgs());
+									if (PlaybackFinished!=null) { PlaybackFinished(this, new EventArgs()); }
 									break;
 								}
 							}
@@ -237,12 +269,13 @@ namespace DragonOgg
 								SetState(OggPlayerStatus.Error);
 								AL.SourceStop(m_Source);
 								Running = false;
-								PlaybackFinished(this, new EventArgs());
 								break;
 							}
 							
 							--ProcessedBuffers;
 						}
+						// If we under-ran, restart the player
+						if (UnderRun) { AL.SourcePlay(m_Source); }
 					}
 					m_TimeOffset = m_CurrentFile.GetTime();
 				}
