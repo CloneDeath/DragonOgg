@@ -58,13 +58,45 @@ namespace DragonOgg
 		private int m_BufferSize;
 				
 		// Property exposure
+		/// <summary>
+		/// Current state of the player as an OggPlayerStatus enumeration. 
+		/// Use OggUtilities.GetEnumString to convert into human-readable information
+		/// </summary>
 		public OggPlayerStatus PlayerState { get { return m_PlayerState; } }
+		/// <summary>
+		/// OggFile object representing the file currently loaded into the player
+		/// </summary>
 		public OggFile CurrentFile { get { return m_CurrentFile; } }
+		/// <summary>
+		/// The last error from the OpenAL subsystem as an ALError enumeration. 
+		/// Use OggUtilities.GetEnumString to convert into human readable information
+		/// </summary>
 		public ALError LastALError { get { return m_LastError; } }
+		/// <summary>
+		/// The position in seconds of the current time being read from the file.
+		/// The actual playing time may differ slightly, especially with large buffers
+		/// </summary>
 		public float TimeCurrent { get { return m_TimeOffset; } }
+		/// <summary>
+		/// The length of the current file in seconds.
+		/// </summary>
 		public float TimeMax { get { return float.Parse(m_CurrentFile.GetQuickTag(OggTags.Length)); } }
+		/// <summary>
+		/// The amount of time to wait after each buffering pass. 
+		/// Use on high-performance systems to reduce processor load by increasing the time between buffering passes. 
+		/// WARNING: VERY LIKELY TO CAUSE STUTTERING: USE ONLY IF REALLY NEEDED
+		/// The default is 10ms. Set lower if you are getting buffer under-runs and cannot increase the buffer count/size.
+		/// </summary>
 		public int UpdateDelay { get { return m_UpdateDelay; } set { m_UpdateDelay = value; } }
+		/// <summary>
+		/// The current size of each buffer block
+		/// Use SetBufferInfo to change this value
+		/// </summary>
 		public int BufferSize { get { return m_BufferSize; } }
+		/// <summary>
+		/// The current number of buffer blocks
+		/// Use SetBufferInfo to change this value
+		/// </summary>
 		public int BufferCount { get { return m_BufferCount; } }
 		
 		/// <summary>

@@ -244,6 +244,20 @@ namespace DragonOgg
 			}
 		}
 		
+		/// <summary>
+		/// Converts an enumeration into a description string for display to a user
+		/// </summary>
+		/// <param name="oaError">
+		/// An <see cref="OpenTK.Audio.OpenAL.ALError"/> enumeration to interpret
+		/// </param>
+		/// <returns>
+		/// A <see cref="System.String"/> containing the description
+		/// </returns>
+		static public string GetEnumString(OpenTK.Audio.OpenAL.ALError oaError)
+		{
+			return OpenTK.Audio.OpenAL.AL.GetErrorString(oaError);
+		}
+		
 		static public OggTag GetEmptyTag()
 		{
 			OggTag tmp;

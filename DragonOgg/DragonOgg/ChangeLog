@@ -1,5 +1,13 @@
 2010-04-24  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
+	* OggPlayer.cs: Added intellisense documentation for
+	  properties
+
+	* MiscStuff.cs: Added a GetEnumString for the ALError
+	  enumeration
+
+2010-04-24  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
 	* OggPlayer.cs: Added FractionElapsed property to simplify
 	  creation of progress bars in developed applications
 
