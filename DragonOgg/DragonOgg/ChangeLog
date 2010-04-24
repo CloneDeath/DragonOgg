@@ -1,5 +1,9 @@
 2010-04-24  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
+	* DragonOgg.csproj: Sorted version info
+
+2010-04-24  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
 	* DragonOgg.csproj: Added license text to the mono project to
 	  simplify distribution
 
