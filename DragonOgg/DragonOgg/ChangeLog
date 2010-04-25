@@ -1,3 +1,11 @@
+2010-04-25  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* OggPlayer.cs: Removed redundant enumeration - to - string
+	  conversion function (functionality implemented by
+	  OggUtilities.GetEnumString)
+	Added some debug messages when compiled in debug mode to help
+	  tracking down an elusive ALError.InvalidValue message
+
 2010-04-24  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
 	* DragonOgg.csproj: Sorted version info

@@ -287,7 +287,10 @@ namespace DragonOgg
 						while (ProcessedBuffers>0)
 						{
 							// For each buffer thats been processed, reload and queue a new one
-							AL.SourceUnqueueBuffers(m_Source, 1, ref BufferRef);
+							AL.SourceUnqueueBuffers(m_Source, 1, ref BufferRef); 
+							#if (DEBUG)
+							if (AL.GetError()!=ALError.NoError) { Console.WriteLine("SourceUnqueueBuffers: ALError: " + OggUtilities.GetEnumString(AL.GetError())); }
+							#endif
 							if (ReachedEOF) { --ProcessedBuffers; continue; }	// If we're at the EOF loop to the next buffer here - we don't want to be trying to fill any more
 							OggBufferSegment obs = m_CurrentFile.GetBufferSegment(m_BufferSize);	// Get chunk of tasty buffer data with the configured segment
 							// Check the buffer segment for errors
@@ -295,7 +298,13 @@ namespace DragonOgg
 							{
 								// No error, queue data
 								AL.BufferData((int)BufferRef, m_CurrentFile.Format, obs.Buffer, obs.ReturnValue, obs.RateHz);
+								#if (DEBUG)
+								if (AL.GetError()!=ALError.NoError) { Console.WriteLine("BufferData: ALError: " + OggUtilities.GetEnumString(AL.GetError())); }
+								#endif
 								AL.SourceQueueBuffers(m_Source, 1, ref BufferRef);
+								#if (DEBUG)
+								if (AL.GetError()!=ALError.NoError) { Console.WriteLine("SourceQueueBuffers: ALError: " + OggUtilities.GetEnumString(AL.GetError())); }
+								#endif
 							}
 							else
 							{
@@ -350,19 +359,6 @@ namespace DragonOgg
 				}
 				// Allow other shizzle to execute
 				Thread.Sleep(m_UpdateDelay);
-			}
-		}
-		
-		// Convert a source state to a string
-		private string SSTS(ALSourceState SS)
-		{
-			switch (SS)
-			{
-			case ALSourceState.Initial : return "Initial";
-			case ALSourceState.Paused : return "Paused";
-			case ALSourceState.Playing : return "Playing";
-			case ALSourceState.Stopped : return "Stopped";
-			default: return "Unknown";
 			}
 		}
 		
