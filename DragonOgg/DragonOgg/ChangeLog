@@ -1,5 +1,15 @@
 2010-04-25  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
+	* OggPlayer.cs: Fixed a potential memory leak due to not
+	  de-allocating buffers properly
+	Fixed a potential memory leak due to repeated allocation &
+	  configuration of source (moved source allocation to
+	  constructor from Playback_Play)
+	Fixed a crash on EOF stop then play of same song due to not
+	  resetting internal position value
+
+2010-04-25  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
 	* OggPlayer.cs: Removed redundant enumeration - to - string
 	  conversion function (functionality implemented by
 	  OggUtilities.GetEnumString)

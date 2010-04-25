@@ -116,6 +116,14 @@ namespace DragonOgg
 			m_BufferCount = 32;
 			m_BufferSize = 4096;
 			m_Buffers = new uint[m_BufferCount];				// We're using four buffers so we always have a supply of data
+			// Create source
+			AL.GenSource(out m_Source);
+			// Configure the source listener
+			AL.Source(m_Source, ALSource3f.Position, 0.0f, 0.0f, 0.0f);
+			AL.Source(m_Source, ALSource3f.Velocity, 0.0f, 0.0f, 0.0f);
+			AL.Source(m_Source, ALSource3f.Direction, 0.0f, 0.0f, 0.0f);
+			AL.Source(m_Source, ALSourcef.RolloffFactor, 0.0f);
+			AL.Source(m_Source, ALSourceb.SourceRelative, true);
 		}
 		
 		/// <summary>
@@ -193,17 +201,11 @@ namespace DragonOgg
 			// We can only play if we're stopped (this should also stop us trying to play invalid files as we'll then be 'Waiting' or 'Error' rather than stopped)
 			if (m_PlayerState == OggPlayerStatus.Stopped)
 			{	
-				// Create source
-				AL.GenSource(out m_Source);
+
 				// Begin buffering
 				SetState(OggPlayerStatus.Buffering);
-				// Configure the source listener
-				AL.Source(m_Source, ALSource3f.Position, 0.0f, 0.0f, 0.0f);
-				AL.Source(m_Source, ALSource3f.Velocity, 0.0f, 0.0f, 0.0f);
-				AL.Source(m_Source, ALSource3f.Direction, 0.0f, 0.0f, 0.0f);
-				AL.Source(m_Source, ALSourcef.RolloffFactor, 0.0f);
-				AL.Source(m_Source, ALSourceb.SourceRelative, true);
-				// Populate buffers
+
+				// Create & Populate buffers
 				for (int i=0;i<m_Buffers.Length;i++)
 				{
 					OggBufferSegment obs = m_CurrentFile.GetBufferSegment(0);
@@ -269,8 +271,17 @@ namespace DragonOgg
 							{
 								// End of file & all buffers played, exit.
 								Running = false;
-								SetState(OggPlayerStatus.Stopped);
+								// Stop the output device if it isn't already
 								if (AL.GetSourceState(m_Source)!=ALSourceState.Stopped) { AL.SourceStop(m_Source); }
+								m_CurrentFile.ResetFile();	// Reset file's internal pointer
+								// De-allocate all buffers
+								for(int i = 0; i<m_Buffers.Length; i++)
+								{
+									AL.DeleteBuffer(ref m_Buffers[i]);	
+								}
+								m_Buffers = new uint[m_BufferCount];
+								// Set state stuff & return
+								SetState(OggPlayerStatus.Stopped);
 								if (PlaybackFinished!=null) { PlaybackFinished(this, new EventArgs()); }
 								return;
 							}
@@ -382,7 +393,13 @@ namespace DragonOgg
 				AL.GetSource(m_Source, ALGetSourcei.BuffersQueued, out nBuffers); 
 				if (nBuffers>0) { AL.SourceUnqueueBuffers((int)m_Source,nBuffers); }
 				// Reset the file object's internal location etc.
-				m_CurrentFile.ResetFile();
+				m_CurrentFile.ResetFile();	
+				// De-allocate all buffers
+				for(int i = 0; i<m_Buffers.Length; i++)
+				{
+					AL.DeleteBuffer(ref m_Buffers[i]);	
+				}
+				m_Buffers = new uint[m_BufferCount];
 				// Set the new state
 				SetState(OggPlayerStatus.Stopped);
 			}
