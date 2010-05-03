@@ -1,3 +1,13 @@
+2010-05-03  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* DragonOgg.csproj: Updated version info
+
+	* OggPlayer.cs: Improved thread locking to increase efficiency
+	  and hopefully reduce UI issues with windows forms objects
+	  called from event handlers
+	Added PlaybackTick event and necessary support apparatus
+
+
 2010-04-25  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
 	* OggPlayer.cs: Fixed a potential memory leak due to not

@@ -45,6 +45,7 @@ namespace DragonOgg
 		public event EventHandler BufferUnderrun;
 		public event EventHandler PlaybackStarted;
 		public event EventHandler PlaybackFinished;
+		public event EventHandler PlaybackTick;
 		
 		// SourceControl object for thread safety
 		static readonly object SourceControl = new object();
@@ -56,6 +57,11 @@ namespace DragonOgg
 		private uint[] m_Buffers;
 		private int m_BufferCount;
 		private int m_BufferSize;
+		
+		// Internal tick event stuff
+		private float m_TickInterval;
+		private bool m_TickEnabled;
+		private float m_LastTick;
 				
 		// Property exposure
 		/// <summary>
@@ -103,7 +109,17 @@ namespace DragonOgg
 		/// How much of the file has elapsed. Returns a float between 0 & 1
 		/// </summary>
 		public float FractionElapsed { get { float FE = m_TimeOffset/float.Parse(m_CurrentFile.GetQuickTag(OggTags.Length)); if (FE>1) { return 1; } else if (FE<0) { return 0; } else { return FE; } } }
-				
+		
+		/// <summary>
+		/// Whether a tick event should be raised every TickInterval seconds of played audio
+		/// </summary>
+		public bool TickEnabled { get { return m_TickEnabled; } set { m_TickEnabled = value; } }
+		
+		/// <summary>
+		/// The interval at which tick events should be raised if TickEnabled is true
+		/// </summary>
+		public float TickInterval { get { return m_TickInterval; } set { m_TickInterval = value; } }
+		
 		/// <summary>
 		/// Constructor
 		/// </summary>
@@ -116,8 +132,13 @@ namespace DragonOgg
 			m_BufferCount = 32;
 			m_BufferSize = 4096;
 			m_Buffers = new uint[m_BufferCount];				// We're using four buffers so we always have a supply of data
+			
+			m_TickInterval = 1;			// Default tick is every second
+			m_TickEnabled = false;		// Tick event is disabled by default
+			
 			// Create source
 			AL.GenSource(out m_Source);
+			
 			// Configure the source listener
 			AL.Source(m_Source, ALSource3f.Position, 0.0f, 0.0f, 0.0f);
 			AL.Source(m_Source, ALSource3f.Velocity, 0.0f, 0.0f, 0.0f);
@@ -208,23 +229,30 @@ namespace DragonOgg
 				// Create & Populate buffers
 				for (int i=0;i<m_Buffers.Length;i++)
 				{
-					OggBufferSegment obs = m_CurrentFile.GetBufferSegment(0);
-					if (obs.ReturnValue>0)
-					{
-						// Create a buffer
-						AL.GenBuffer(out m_Buffers[i]);
-						// Fill this buffer
-						AL.BufferData((int)m_Buffers[i], m_CurrentFile.Format, obs.Buffer, obs.ReturnValue, obs.RateHz);
-					} 
-					else 
-					{
-						throw new Exception("Read error or EOF within initial buffer segment");
+					lock (SourceControl) {
+						OggBufferSegment obs = m_CurrentFile.GetBufferSegment(0);
+						if (obs.ReturnValue>0)
+						{
+							// Create a buffer
+							AL.GenBuffer(out m_Buffers[i]);
+							// Fill this buffer
+							AL.BufferData((int)m_Buffers[i], m_CurrentFile.Format, obs.Buffer, obs.ReturnValue, obs.RateHz);
+						}
+						else 
+						{
+							throw new Exception("Read error or EOF within initial buffer segment");
+						}
 					}
 				}
-				// We've filled four buffers with data, give 'em to the source
-				AL.SourceQueueBuffers(m_Source, m_Buffers.Length, m_Buffers);
-				// Start playback
-				AL.SourcePlay(m_Source);
+				lock (SourceControl)
+				{
+					// We've filled four buffers with data, give 'em to the source
+					AL.SourceQueueBuffers(m_Source, m_Buffers.Length, m_Buffers);
+					// Start playback
+					AL.SourcePlay(m_Source);
+				}
+				m_LastTick = 0;
+				m_LastError = ALError.NoError;
 				// Spawn a new player thread
 				SetState(OggPlayerStatus.Playing);
 				new Thread(new ThreadStart(Player_Thread)).Start();
@@ -256,18 +284,18 @@ namespace DragonOgg
 				// See what we're doing
 				if (m_PlayerState==OggPlayerStatus.Playing)
 				{
-					lock (SourceControl)
+					if (ReachedEOF)
 					{
-						if (ReachedEOF)
+						// We've come to the end of the file, just see if there are any buffers left in the queue
+						int QueuedBuffers = 0;
+						AL.GetSource(m_Source, ALGetSourcei.BuffersQueued, out QueuedBuffers);
+						if (QueuedBuffers>0) 
 						{
-							// We've come to the end of the file, just see if there are any buffers left in the queue
-							int QueuedBuffers = 0;
-							AL.GetSource(m_Source, ALGetSourcei.BuffersQueued, out QueuedBuffers);
-							if (QueuedBuffers>0) 
-							{
-								// We want to remove the buffers, so carry on to the usual playing section
-							}
-							else
+							// We want to remove the buffers, so carry on to the usual playing section
+						}
+						else
+						{
+							lock (SourceControl)
 							{
 								// End of file & all buffers played, exit.
 								Running = false;
@@ -280,22 +308,33 @@ namespace DragonOgg
 									AL.DeleteBuffer(ref m_Buffers[i]);	
 								}
 								m_Buffers = new uint[m_BufferCount];
-								// Set state stuff & return
-								SetState(OggPlayerStatus.Stopped);
-								if (PlaybackFinished!=null) { PlaybackFinished(this, new EventArgs()); }
-								return;
 							}
+							// Set state stuff & return
+							SetState(OggPlayerStatus.Stopped);
+							if (PlaybackFinished!=null) { PlaybackFinished(this, new EventArgs()); }
+							return;
 						}
-						int ProcessedBuffers = 0; uint BufferRef=0;
-						AL.GetSource(m_Source, ALGetSourcei.BuffersProcessed, out ProcessedBuffers);
-						bool UnderRun = false;
-						// Check for buffer underrun
-						if (ProcessedBuffers>=m_BufferCount)
-						{
-							UnderRun = true;
-							if (BufferUnderrun!=null) { BufferUnderrun(this, new EventArgs()); }
-						}
-						while (ProcessedBuffers>0)
+					}
+					
+					// Check for buffer underrun
+					int ProcessedBuffers = 0; uint BufferRef=0;
+					lock (SourceControl)
+					{
+						AL.GetSource(m_Source, ALGetSourcei.BuffersProcessed, out ProcessedBuffers);	
+					}
+					bool UnderRun = false;
+
+					if (ProcessedBuffers>=m_BufferCount)
+					{
+						UnderRun = true;
+						if (BufferUnderrun!=null) { BufferUnderrun(this, new EventArgs()); }
+					}
+					
+					// Unbuffer any processed buffers
+					while (ProcessedBuffers>0)
+					{
+						OggBufferSegment obs;
+						lock (SourceControl)
 						{
 							// For each buffer thats been processed, reload and queue a new one
 							AL.SourceUnqueueBuffers(m_Source, 1, ref BufferRef); 
@@ -303,9 +342,12 @@ namespace DragonOgg
 							if (AL.GetError()!=ALError.NoError) { Console.WriteLine("SourceUnqueueBuffers: ALError: " + OggUtilities.GetEnumString(AL.GetError())); }
 							#endif
 							if (ReachedEOF) { --ProcessedBuffers; continue; }	// If we're at the EOF loop to the next buffer here - we don't want to be trying to fill any more
-							OggBufferSegment obs = m_CurrentFile.GetBufferSegment(m_BufferSize);	// Get chunk of tasty buffer data with the configured segment
-							// Check the buffer segment for errors
-							if (obs.ReturnValue>0)
+							obs = m_CurrentFile.GetBufferSegment(m_BufferSize);	// Get chunk of tasty buffer data with the configured segment
+						}
+						// Check the buffer segment for errors
+						if (obs.ReturnValue>0)
+						{
+							lock (SourceControl)
 							{
 								// No error, queue data
 								AL.BufferData((int)BufferRef, m_CurrentFile.Format, obs.Buffer, obs.ReturnValue, obs.RateHz);
@@ -317,50 +359,61 @@ namespace DragonOgg
 								if (AL.GetError()!=ALError.NoError) { Console.WriteLine("SourceQueueBuffers: ALError: " + OggUtilities.GetEnumString(AL.GetError())); }
 								#endif
 							}
+						}
+						else
+						{
+							if (obs.ReturnValue==0)
+							{
+								// End of file
+								ReachedEOF = true;
+								break;
+							}
 							else
 							{
-								if (obs.ReturnValue==0)
+								// Something went wrong with the read
+								lock (SourceControl)
 								{
-									// End of file
-									ReachedEOF = true;
-									break;
-								}
-								else
-								{
-									// Something went wrong with the read
 									m_PlayerState = OggPlayerStatus.Error;
 									AL.SourceStop(m_Source);
 									Running = false;
-									if (PlaybackFinished!=null) { PlaybackFinished(this, new EventArgs()); }
-									break;
 								}
-							}
-							// Check for errors
-							m_LastError = AL.GetError();
-							if (m_LastError!= ALError.NoError)
-							{
-								SetState(OggPlayerStatus.Error);
-								AL.SourceStop(m_Source);
-								Running = false;
+								if (PlaybackFinished!=null) { PlaybackFinished(this, new EventArgs()); }
 								break;
 							}
-							
-							--ProcessedBuffers;
 						}
-						// If we under-ran, restart the player
-						if (UnderRun) { AL.SourcePlay(m_Source); }
+						// Check for errors
+						m_LastError = AL.GetError();
+						if (m_LastError!= ALError.NoError)
+						{
+							SetState(OggPlayerStatus.Error);
+							lock (SourceControl) { AL.SourceStop(m_Source); }
+							Running = false;
+							break;
+						}
+						
+						--ProcessedBuffers;
 					}
+					// If we under-ran, restart the player
+					if (UnderRun) { lock (SourceControl) { AL.SourcePlay(m_Source); } }
+					
+					// Do stuff with the time values & tick event
 					m_TimeOffset = m_CurrentFile.GetTime();
+					if (m_TickEnabled)
+					{
+						if (m_TimeOffset>=m_LastTick+m_TickInterval)
+						{
+							m_LastTick = m_TimeOffset;
+							if (PlaybackTick!=null) { PlaybackTick(this, new EventArgs()); }
+						}
+					}
 				}
 				else if (m_PlayerState==OggPlayerStatus.Seeking)
 				{
-					// Wait a short time then loop round again and see if we're still seeking
-					Thread.Sleep(100);
+					// Just wait for us to finish seeking
 				}
 				else if (m_PlayerState==OggPlayerStatus.Paused)
 				{
-					// Wait a short time then loop round again and see if we're still paused
-					Thread.Sleep(100);
+					// Just wait for us to un-pause
 				}
 				else 
 				{
@@ -400,9 +453,10 @@ namespace DragonOgg
 					AL.DeleteBuffer(ref m_Buffers[i]);	
 				}
 				m_Buffers = new uint[m_BufferCount];
-				// Set the new state
-				SetState(OggPlayerStatus.Stopped);
 			}
+			m_LastTick = 0;
+			// Set the new state
+			SetState(OggPlayerStatus.Stopped);
 			return OggPlayerCommandReturn.Success;
 		}
 		
@@ -419,8 +473,8 @@ namespace DragonOgg
 			lock (SourceControl)
 			{
 				AL.SourcePause(m_Source);
-				SetState(OggPlayerStatus.Paused);
 			}
+			SetState(OggPlayerStatus.Paused);
 			return OggPlayerCommandReturn.Success;
 			
 		}
@@ -438,8 +492,8 @@ namespace DragonOgg
 			lock (SourceControl)
 			{
 				AL.SourcePlay(m_Source);
-				SetState(OggPlayerStatus.Playing);
 			}
+			SetState(OggPlayerStatus.Playing);
 			return OggPlayerCommandReturn.Success;
 		}
 		
@@ -457,14 +511,15 @@ namespace DragonOgg
 		{
 			if (!((m_PlayerState == OggPlayerStatus.Playing)||(m_PlayerState == OggPlayerStatus.Playing))) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
 			OggPlayerCommandReturn retVal = OggPlayerCommandReturn.Error;
+			SetState(OggPlayerStatus.Seeking);
 			lock (SourceControl)
 			{
-				SetState(OggPlayerStatus.Seeking);
 				AL.SourcePause(m_Source);
 				retVal = m_CurrentFile.SeekToTime(RequestedTime);
 				AL.SourcePlay(m_Source);
-				SetState(OggPlayerStatus.Playing);
 			}
+			m_LastTick = RequestedTime - m_TickInterval;
+			SetState(OggPlayerStatus.Playing);
 			return retVal;
 		}
 	}
