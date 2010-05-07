@@ -1,3 +1,18 @@
+2010-05-07  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* OggPlaylistWriter.cs: Rearranged OggPlaylistWriter - now a
+	  static class. Read & Write functions take a format argument.
+
+	* OggPlaylist.cs: Implemented IEnumerable for OggPlaylist
+	Added OggPlaylistEnumerator (Implementing IEnumerable)
+	First phase of OggPlaylist code
+
+	* MiscStuff.cs: Added OggPlaylist format enumeration and
+	  supporting GetEnumString
+
+	* OggPlayer.cs: Tidied some declarations to improve code
+	  readability
+
 2010-05-03  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
 	* DragonOgg.csproj: Updated version info

@@ -27,43 +27,39 @@ namespace DragonOgg
 	/// <summary>
 	/// Interface for OggPlaylistWriters for various playlist file formats
 	/// </summary>
-	public interface OggPlaylistWriter
+	public static class OggPlaylistWriter
 	{
-		bool WriteFile(string Filename);
-		OggPlaylist ReadFile(string Filename);
-	}
-	
-	/// <summary>
-	/// PlaylistWriter class for .M3U files
-	/// </summary>
-	public class OggPlaylistWriter_M3U : OggPlaylistWriter
-	{
-		public bool WriteFile (string Filename)
+		public static bool WriteFile(string Filename, OggPlaylistFormat Format)
 		{
-			throw new System.NotImplementedException();
+			throw new NotImplementedException();
 		}
 		
-		
-		public OggPlaylist ReadFile (string Filename)
+		public static OggPlaylist ReadFile(string Filename, OggPlaylistFormat Format)
 		{
-			throw new System.NotImplementedException();
-		}	
-	}
-	
-	/// <summary>
-	/// PlaylistWriter class for .PLS files
-	/// </summary>
-	public class OggPlaylistWriter_PLS : OggPlaylistWriter
-	{
-		public bool WriteFile (string Filename)
-		{
-			throw new System.NotImplementedException();
+			throw new NotImplementedException();
 		}
 		
-		
-		public OggPlaylist ReadFile (string Filename)
+		#region "PLS"
+		private static bool WriteFilePLS(string Filename)
 		{
-			throw new System.NotImplementedException();
-		}	
+			throw new NotImplementedException();
+		}
+		private static OggPlaylist ReadFilePLS(string Filename)
+		{
+			throw new NotImplementedException();
+		}
+		#endregion
+		
+		#region "M3U"
+		private static bool WriteFileM3U(string Filename)
+		{
+			throw new NotImplementedException();
+		}
+		private static OggPlaylist ReadFileM3U(string Filename)
+		{
+			throw new NotImplementedException();	
+		}
+		#endregion
 	}
+	
 }

@@ -277,7 +277,8 @@ namespace DragonOgg
 		// Player thread
 		private void Player_Thread()
 		{
-			bool Running = true; bool ReachedEOF = false;
+			bool Running = true; bool ReachedEOF = false; bool UnderRun = false;
+			
 			if (PlaybackStarted!=null) { PlaybackStarted(this, new EventArgs()); }
 			while (Running)
 			{
@@ -321,14 +322,12 @@ namespace DragonOgg
 					lock (SourceControl)
 					{
 						AL.GetSource(m_Source, ALGetSourcei.BuffersProcessed, out ProcessedBuffers);	
-					}
-					bool UnderRun = false;
-
+					}				
 					if (ProcessedBuffers>=m_BufferCount)
 					{
 						UnderRun = true;
 						if (BufferUnderrun!=null) { BufferUnderrun(this, new EventArgs()); }
-					}
+					} else { UnderRun = false; }
 					
 					// Unbuffer any processed buffers
 					while (ProcessedBuffers>0)
@@ -393,6 +392,7 @@ namespace DragonOgg
 						
 						--ProcessedBuffers;
 					}
+						
 					// If we under-ran, restart the player
 					if (UnderRun) { lock (SourceControl) { AL.SourcePlay(m_Source); } }
 					

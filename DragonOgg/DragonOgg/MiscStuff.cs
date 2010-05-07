@@ -73,6 +73,11 @@ namespace DragonOgg
 	/// </summary>
 	public enum OggPlayerCommandReturn { Success=0, Error, OperationNotValid, ParameterNotValid, ValueOutOfRange, NoFile, InvalidCommandInThisPlayerState }
 	
+	/// <summary>
+	/// Enumeration of playlist formats (used with OggPlaylistWriter)
+	/// </summary>
+	public enum OggPlaylistFormat { M3U=0, PLS }
+	
 	static public class OggUtilities
 	{
 		/// <summary>
@@ -256,6 +261,16 @@ namespace DragonOgg
 		static public string GetEnumString(OpenTK.Audio.OpenAL.ALError oaError)
 		{
 			return OpenTK.Audio.OpenAL.AL.GetErrorString(oaError);
+		}
+		
+		static public string GetEnumString(OggPlaylistFormat oPlaylistFormat)
+		{
+			switch (oPlaylistFormat)
+			{
+			case OggPlaylistFormat.M3U: return "M3U";
+			case OggPlaylistFormat.PLS: return "PLS";
+			default: return "Unknown Playlist Format Value";
+			}
 		}
 		
 		static public OggTag GetEmptyTag()
