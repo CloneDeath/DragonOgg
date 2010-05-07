@@ -78,6 +78,11 @@ namespace DragonOgg
 	/// </summary>
 	public enum OggPlaylistFormat { M3U=0, PLS }
 	
+	/// <summary>
+	/// Enumeration of playlist states (used by OggPlaylist)
+	/// </summary>
+	public enum OggPlaylistStatus { WaitingForPlayer=0, WaitingForTracks, Ready, Playing, Moving, Paused, NoMoreTracks, PlayerError, PlaylistError }
+	
 	static public class OggUtilities
 	{
 		/// <summary>
@@ -263,6 +268,15 @@ namespace DragonOgg
 			return OpenTK.Audio.OpenAL.AL.GetErrorString(oaError);
 		}
 		
+		/// <summary>
+		/// Converts an enumeration into a description string for display to a user
+		/// </summary>
+		/// <param name="oPlaylistFormat">
+		/// An <see cref="OggPlaylistFormat"/> enumeration to interpret
+		/// </param>
+		/// <returns>
+		/// A <see cref="System.String"/> containing the description
+		/// </returns>
 		static public string GetEnumString(OggPlaylistFormat oPlaylistFormat)
 		{
 			switch (oPlaylistFormat)
@@ -273,6 +287,38 @@ namespace DragonOgg
 			}
 		}
 		
+		/// <summary>
+		/// Converts an enumeration into a description string for display to a user
+		/// </summary>
+		/// <param name="oPlaylistStatus">
+		/// An <see cref="OggPlaylistStatus"/> enumeration to interpret
+		/// </param>
+		/// <returns>
+		/// A <see cref="System.String"/> containing the description
+		/// </returns>
+		static public string GetEnumString(OggPlaylistStatus oPlaylistStatus)
+		{
+			switch (oPlaylistStatus)
+			{
+			case OggPlaylistStatus.Moving: return "Moving to track";
+			case OggPlaylistStatus.NoMoreTracks: return "No more tracks to play";
+			case OggPlaylistStatus.Paused: return "Paused";
+			case OggPlaylistStatus.PlayerError: return "Error in Player interface";
+			case OggPlaylistStatus.Playing: return "Playing";
+			case OggPlaylistStatus.PlaylistError: return "Error in Playlist";
+			case OggPlaylistStatus.Ready: return "Playlist ready";
+			case OggPlaylistStatus.WaitingForPlayer: return "Waiting for player to be assigned";
+			case OggPlaylistStatus.WaitingForTracks: return "Waiting for tracks to be added";
+			default: return "Unknown Playlist Status Value";
+			}
+		}
+		
+		/// <summary>
+		/// Returns an OggTag structure with 'empty' data
+		/// </summary>
+		/// <returns>
+		/// An <see cref="OggTag"/>
+		/// </returns>
 		static public OggTag GetEmptyTag()
 		{
 			OggTag tmp;

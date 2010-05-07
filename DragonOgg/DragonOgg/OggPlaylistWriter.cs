@@ -29,7 +29,7 @@ namespace DragonOgg
 	/// </summary>
 	public static class OggPlaylistWriter
 	{
-		public static bool WriteFile(string Filename, OggPlaylistFormat Format)
+		public static bool WriteFile(string Filename, OggPlaylistFormat Format, OggPlaylist Playlist)
 		{
 			throw new NotImplementedException();
 		}
@@ -40,7 +40,7 @@ namespace DragonOgg
 		}
 		
 		#region "PLS"
-		private static bool WriteFilePLS(string Filename)
+		private static bool WriteFilePLS(string Filename, OggPlaylist Playlist)
 		{
 			throw new NotImplementedException();
 		}
@@ -51,7 +51,7 @@ namespace DragonOgg
 		#endregion
 		
 		#region "M3U"
-		private static bool WriteFileM3U(string Filename)
+		private static bool WriteFileM3U(string Filename, OggPlaylist Playlist)
 		{
 			throw new NotImplementedException();
 		}

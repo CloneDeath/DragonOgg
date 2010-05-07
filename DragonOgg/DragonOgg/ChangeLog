@@ -1,3 +1,18 @@
+2010-05-08  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* OggPlaylistWriter.cs: Added Playlist parameter to Write
+	  functions as they are now static rather than linked to a
+	  playlist object intrinsically
+
+	* OggPlaylist.cs: Implemented Constructor, Deconstructor,
+	  various property interfaces and player Assign/UnAssign
+	  functions
+	Added PlaylistStateChanged event and internal support function
+
+	* MiscStuff.cs: Added OggPlaylistState enumeration &
+	  supporting GetEnumString
+	Tidied up some intellisense comments
+
 2010-05-07  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
 	* OggPlaylistWriter.cs: Rearranged OggPlaylistWriter - now a

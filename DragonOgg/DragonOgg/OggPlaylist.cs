@@ -38,8 +38,8 @@ namespace DragonOgg
 		private bool m_AutoOrder;			// Flag indicating whether the playlist automatically orders items on Add/Remove
 		private Random m_RandomGenerator;	// Random number generator
 		private OggPlayer m_Player;			// Player object for output
-		private OggFile m_CurrentFile;		// Currently playing file
-		private OggPlayerStatus m_PlaylistState;	// Player status enumeration indicating the state of the playlist
+		private OggPlaylistFile m_CurrentFile;		// Currently playing file
+		private OggPlaylistStatus m_PlaylistState;	// Playlist status enumeration
 		
 		/// <summary>
 		/// Flag indicating whether the playlist will loop when it comes to the end
@@ -50,21 +50,124 @@ namespace DragonOgg
 		/// Flag indicating whether the playlist will play files in the order dictated by OrderNum
 		/// </summary>
 		public bool RandomOrder { get { return m_Random; } set { m_Random = value; } }
+		/// <summary>
+		/// The currently playing file
+		/// </summary>
+		public OggPlaylistFile CurrentFile { get { return m_CurrentFile; } }
+		/// <summary>
+		/// The current state of the player
+		/// </summary>
+		public OggPlaylistStatus PlaylistState { get { return m_PlaylistState; } }
+		/// <summary>
+		/// The position within the playlist. This is not necessarily the order number of the current track
+		/// </summary>
+		public int Position { get { return Position; } }
+		/// <summary>
+		/// The order number of the current track
+		/// </summary>
+		public int PositionOrderNum { get { return m_CurrentFile.OrderNum; } }
+		/// <summary>
+		/// Retrieve a specific file from the playlist. Trying to set the currently playling file will fail with an AccessViolationException
+		/// </summary>
+		/// <param name="i">
+		/// A <see cref="System.Int32"/>
+		/// </param>
+		public OggPlaylistFile this[int i] { get { return (OggPlaylistFile) m_FileHeap[i]; } 	set { if (i == m_Position) { throw new AccessViolationException(); } m_FileHeap[i] = value; } }
 		
+		/// <summary>
+		/// Raised when the playlist changes state
+		/// </summary>
+		public event EventHandler PlaylistStateChanged;
+		
+		/// <summary>
+		/// Enumerator implementation
+		/// </summary>
+		/// <returns>
+		/// A <see cref="IEnumerator"/>
+		/// </returns>
 		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return (IEnumerator) GetEnumerator();
 		}
 		
+		/// <summary>
+		/// Enumerator implementation
+		/// </summary>
+		/// <returns>
+		/// A <see cref="OggPlaylistEnumerator"/>
+		/// </returns>
 		public OggPlaylistEnumerator GetEnumerator()
 		{
 			return new OggPlaylistEnumerator(m_FileHeap);
 		}
-				
-		public OggPlaylist ()
+		
+		// Constructor
+		public OggPlaylist()
+		{
+			m_FileHeap = new ArrayList();
+			m_CurrentFile = null;
+			m_Position = 0;
+			m_AutoOrder = true;
+			m_Random = false;
+			m_RandomGenerator = new Random();
+			m_Repeat = false;
+			m_PlaylistState = OggPlaylistStatus.WaitingForPlayer;
+		}
+		
+		// Deconstructor
+		~OggPlaylist()
+		{
+			if (m_Player!=null)
+			{
+				m_Player.Playback_Stop();
+				m_Player = null;
+			}
+			m_FileHeap.Clear();
+			m_FileHeap = null;
+			m_CurrentFile = null;
+		}
+		
+		public void Add(OggPlaylistFile Item)
 		{
 			
+		}
+		
+		public void Remove(OggPlaylistFile Item)
+		{
 			
+		}
+		
+		/// <summary>
+		/// Assign a player object to this playlist
+		/// </summary>
+		/// <param name="PlayerObject">
+		/// The <see cref="OggPlayer"/> to assign
+		/// </param>
+		public void AssignPlayer(OggPlayer PlayerObject)
+		{
+			if (m_Player!=null) { throw new InvalidOperationException("Cannot assign a player when a player is already present. Un-assign the existing player firts"); }
+			m_Player = PlayerObject;
+			if (m_FileHeap.Count>0) { SetState(OggPlaylistStatus.Ready); } else { SetState(OggPlaylistStatus.WaitingForTracks); }
+		}
+		
+		/// <summary>
+		/// Remove and destroy the player object
+		/// </summary>
+		public void UnAssignPlayer()
+		{
+			if (m_Player!=null)
+			{
+				m_Player.Playback_Stop();		// Stop playing if we are, don't do anything if we aren't
+				m_Player = null;
+				SetState(OggPlaylistStatus.WaitingForPlayer);
+			}
+		}
+		
+		
+		private void SetState(OggPlaylistStatus NewState)
+		{
+			m_PlaylistState = NewState;
+			if (PlaylistStateChanged!=null) { PlaylistStateChanged(this, new EventArgs()); }
 		}
 	}
 	
