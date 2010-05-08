@@ -1,5 +1,10 @@
 2010-05-08  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
+	* OggFile.cs: Fixed array index out of bounds error when
+	  SetTag was called with a non-array tag
+
+2010-05-08  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
 	* OggPlaylistWriter.cs: Added Playlist parameter to Write
 	  functions as they are now static rather than linked to a
 	  playlist object intrinsically
