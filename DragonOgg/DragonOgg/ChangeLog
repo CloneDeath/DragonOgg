@@ -1,5 +1,10 @@
 2010-05-08  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
+	* OggFile.cs: Actually fixed the bug in the previous revision!
+	  Original fix wasn't a fix!
+
+2010-05-08  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
 	* OggFile.cs: Fixed array index out of bounds error when
 	  SetTag was called with a non-array tag
 

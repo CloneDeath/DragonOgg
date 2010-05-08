@@ -268,7 +268,7 @@ namespace DragonOgg
 			if (XC != null)
 			{
 				string[] tmpStrArray;
-				if (Tag.IsArray) { tmpStrArray = Tag.Values; } else { tmpStrArray = new string[0]; tmpStrArray[1] = Tag.Value; }
+				if (Tag.IsArray) { tmpStrArray = Tag.Values; } else { tmpStrArray = new string[1]; tmpStrArray[0] = Tag.Value; }
 				// Set field
 				XC.SetField(Tag.Name, tmpStrArray);
 				// Copy the XC instance into our file (not sure if this is needed)
