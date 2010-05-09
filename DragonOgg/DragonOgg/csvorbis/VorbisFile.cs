@@ -22,6 +22,11 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+// Alteration of FileShare mode on line 97 by Matthew Harris for use as part of the DragonOgg library. Remove the following to revert:
+// , FileShare.ReadWrite
+// Be aware that this does introduce potential difficulties with the file being written between writing operations, but is needed to allow
+// the DragonOgg library to work properly w.r.t writing tags.
+
 
 using System;
 using System.IO;

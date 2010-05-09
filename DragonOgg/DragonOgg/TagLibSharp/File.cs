@@ -28,6 +28,9 @@
 // USA
 //
 
+// Alteration of WriteStream declaration on line 1579 by Matthew Harris to maintain read access for other processes during writing.
+// This is needed to allow TagLibSharp to integrate properly with the DragonOgg library. Remove FileShare.Read to revert to the original form
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
