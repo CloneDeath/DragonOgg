@@ -94,7 +94,7 @@ namespace csvorbis
 		{
 			FileStream inst=null;
 			
-			try{ inst=new FileStream(file, FileMode.Open, FileAccess.Read);}
+			try{ inst=new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);}
 			catch(Exception e)
 			{
 				throw new csorbisException("VorbisFile: "+e.Message);

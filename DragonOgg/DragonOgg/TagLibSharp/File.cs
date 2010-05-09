@@ -1575,7 +1575,8 @@ namespace TagLib {
 			public System.IO.Stream WriteStream {
 				get {return System.IO.File.Open (Name,
 					System.IO.FileMode.Open,
-					System.IO.FileAccess.ReadWrite);}
+					System.IO.FileAccess.ReadWrite,
+					System.IO.FileShare.Read);}
 			}
 			
 			/// <summary>
