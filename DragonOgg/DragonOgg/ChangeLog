@@ -1,5 +1,9 @@
 2010-05-09  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
+	* OggFile.cs: Fixed missing Save call in RemoveAllTags
+
+2010-05-09  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
 	* OggFile.cs: Implemented IDisposable for proper clean-up of
 	  file handles
 

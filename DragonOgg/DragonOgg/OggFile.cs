@@ -412,6 +412,7 @@ namespace DragonOgg
 		{
 			// Dead simple (in theory)
 			m_TagLibFile.RemoveTags(TagTypes.AllTags);
+			m_TagLibFile.Save();
 			// Done?
 			return OggTagWriteCommandReturn.Success;
 		}
