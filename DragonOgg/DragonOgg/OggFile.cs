@@ -39,7 +39,7 @@ namespace DragonOgg
 	/// Combines the csvorbis, System.IO and TagLib functionality into one class
 	/// Use for editting tags, or in conjunction with OggPlayer for audio output or OggPlaylist for playlist reading/writing
 	/// </summary>
-	public class OggFile
+	public class OggFile : IDisposable 
 	{
 		
 		private string m_Filename;			// Filename
@@ -487,6 +487,16 @@ namespace DragonOgg
 			return m_CSVorbisFile.time_tell();
 		}
 		
+		#region IDisposable implementation
+		public void Dispose ()
+		{
+			m_TagLibFile.Dispose();
+			m_TagLibFile = null;
+			m_CSVorbisFile.Dispose();
+			m_CSVorbisFile = null;
+		}
+		
+		#endregion
 	}
 
 }

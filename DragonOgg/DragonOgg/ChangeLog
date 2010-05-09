@@ -1,3 +1,8 @@
+2010-05-09  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* OggFile.cs: Implemented IDisposable for proper clean-up of
+	  file handles
+
 2010-05-08  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
 	* OggFile.cs: Actually fixed the bug in the previous revision!

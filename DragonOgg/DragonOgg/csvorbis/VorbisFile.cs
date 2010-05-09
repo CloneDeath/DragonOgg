@@ -26,6 +26,7 @@
 // , FileShare.ReadWrite
 // Be aware that this does introduce potential difficulties with the file being written between writing operations, but is needed to allow
 // the DragonOgg library to work properly w.r.t writing tags.
+// Also added IDisposable implementation to properly close down the filestream
 
 
 using System;
@@ -34,7 +35,7 @@ using csogg;
 
 namespace csvorbis 
 {
-	public class VorbisFile
+	public class VorbisFile : IDisposable 
 	{
 		static int CHUNKSIZE=8500;
 		static int SEEK_SET=0;
@@ -1435,5 +1436,15 @@ namespace csvorbis
 
 		public Info[] getInfo(){return vi;}
 		public Comment[] getComment(){return vc;}
+		
+		#region IDisposable implementation
+		public void Dispose ()
+		{
+			datasource.Close();
+			datasource.Dispose();
+			datasource = null;
+		}
+		
+		#endregion
 	}
 }
