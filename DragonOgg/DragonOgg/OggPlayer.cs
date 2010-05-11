@@ -285,11 +285,13 @@ namespace DragonOgg
 				// See what we're doing
 				if (m_PlayerState==OggPlayerStatus.Playing)
 				{
+					// Check number of buffers
+					int QueuedBuffers = 0;
+					AL.GetSource(m_Source, ALGetSourcei.BuffersQueued, out QueuedBuffers);
+					// EOF stuff
 					if (ReachedEOF)
 					{
 						// We've come to the end of the file, just see if there are any buffers left in the queue
-						int QueuedBuffers = 0;
-						AL.GetSource(m_Source, ALGetSourcei.BuffersQueued, out QueuedBuffers);
 						if (QueuedBuffers>0) 
 						{
 							// We want to remove the buffers, so carry on to the usual playing section
@@ -314,6 +316,15 @@ namespace DragonOgg
 							SetState(OggPlayerStatus.Stopped);
 							if (PlaybackFinished!=null) { PlaybackFinished(this, new EventArgs()); }
 							return;
+						}
+					}
+					
+					// If the number of buffers is greater than 0 & the source isn't playing, poke it so it does
+					if (QueuedBuffers>0)
+					{
+						if (AL.GetSourceState(m_Source) != ALSourceState.Playing)
+						{
+							AL.SourcePlay(m_Source);
 						}
 					}
 					

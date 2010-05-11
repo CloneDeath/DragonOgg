@@ -1,3 +1,10 @@
+2010-05-11  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* OggPlayer.cs: Made player thread more resilient to adverse
+	  network/processor conditions - intermittent connections
+	  should no longer leave the player hanging whilst indicating
+	  it is still playing.
+
 2010-05-09  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
 	* OggFile.cs: Fixed missing Save call in RemoveAllTags
