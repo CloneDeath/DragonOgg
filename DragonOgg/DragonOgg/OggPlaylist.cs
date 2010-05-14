@@ -127,14 +127,30 @@ namespace DragonOgg
 			m_CurrentFile = null;
 		}
 		
+		/// <summary>
+		/// Add a file to the Playlist
+		/// </summary>
+		/// <param name="Item">
+		/// The <see cref="OggPlaylistFile"/> to add
+		/// </param>
 		public void Add(OggPlaylistFile Item)
 		{
-			
+			if (m_FileHeap==null) { return; }
+			m_FileHeap.Add(Item);
+			if (m_AutoOrder) { m_FileHeap.Sort(); }
 		}
 		
+		/// <summary>
+		/// Remove a file from the Playlist
+		/// </summary>
+		/// <param name="Item">
+		/// The <see cref="OggPlaylistFile"/> to remove
+		/// </param>
 		public void Remove(OggPlaylistFile Item)
 		{
-			
+			if (m_FileHeap==null) { return; }
+			m_FileHeap.Remove(Item);
+			if (m_AutoOrder) { m_FileHeap.Sort(); }
 		}
 		
 		/// <summary>

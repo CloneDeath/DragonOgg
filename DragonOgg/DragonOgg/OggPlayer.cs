@@ -320,7 +320,7 @@ namespace DragonOgg
 					}
 					
 					// If the number of buffers is greater than 0 & the source isn't playing, poke it so it does
-					if (QueuedBuffers>0)
+					if ((!ReachedEOF)&&(QueuedBuffers>0))
 					{
 						if (AL.GetSourceState(m_Source) != ALSourceState.Playing)
 						{
