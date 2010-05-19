@@ -1,3 +1,22 @@
+2010-05-19  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* OggPlayerFBN.cs: Old OggPlayer class moved here
+	Several changes to make it work with the new OggPlayer
+	  abstraction (not complete yet)
+
+	* OggPlayer.cs: Moved old OggPlayer class to OggPlayerFBN.
+	  OggPlayer is now an abstraction for players of different
+	  types
+
+	* OggPlayerVBN.cs: New OggPlayer type - Variable Buffer Number
+	  player
+
+	* DragonOgg.csproj: Changes to reflect new version number &
+	  new files
+
+	* MiscStuff.cs: Added additional enumerations & supporting
+	  GetEnumString functions to handler OggPlayer abstraction
+
 2010-05-14  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
 	* OggPlaylist.cs: Added Add & Remove functions

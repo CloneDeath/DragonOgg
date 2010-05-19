@@ -69,9 +69,19 @@ namespace DragonOgg
 	public enum OggPlayerStatus { Waiting=0,Error,Stopped,Playing,Paused,Seeking,Buffering }
 	
 	/// <summary>
+	/// Enumeration of the reason for a change in the player state of  the OggPlayer class
+	/// </summary>
+	public enum OggPlayerStateChanger { NoChange=0, UserRequest, EndOfFile, Error, Internal }
+	
+	/// <summary>
 	/// Enumeration of the return values from various operations in the OggPlayer class
 	/// </summary>
 	public enum OggPlayerCommandReturn { Success=0, Error, OperationNotValid, ParameterNotValid, ValueOutOfRange, NoFile, InvalidCommandInThisPlayerState }
+
+	/// <summary>
+	/// Enumeration of the types of messages sent by the OggPlayer class
+	/// </summary>
+	public enum OggPlayerMessageType { NoMessage=0, BufferUnderrun, PlaybackEndOfFile, BufferEndOfFile }
 	
 	/// <summary>
 	/// Enumeration of playlist formats (used with OggPlaylistWriter)
@@ -312,6 +322,50 @@ namespace DragonOgg
 			default: return "Unknown Playlist Status Value";
 			}
 		}
+		
+		/// <summary>
+		/// Converts an enumeration into a description string for display to a user
+		/// </summary>
+		/// <param name="oPlayerStateChanger">
+		/// An <see cref="OggPlayerStateChanger"/> enumeration to interpret
+		/// </param>
+		/// <returns>
+		/// A <see cref="System.String"/> containing the description
+		/// </returns>
+		static public string GetEnumString(OggPlayerStateChanger oPlayerStateChanger)
+		{
+			switch (oPlayerStateChanger)
+			{
+			case OggPlayerStateChanger.EndOfFile: return "Reached end of file";
+			case OggPlayerStateChanger.Error: return "An error occured";
+			case OggPlayerStateChanger.Internal: return "State changed for unknown internal reason";
+			case OggPlayerStateChanger.NoChange: return "State didn't change";
+			case OggPlayerStateChanger.UserRequest: return "User requested state change";
+			default: return "Unknown Player State Changer Value";
+			}
+		}
+		
+		/// <summary>
+		/// Converts an enumeration into a description string for display to a user
+		/// </summary>
+		/// <param name="oPlayerMessageType">
+		/// An <see cref="OggPlayerMessageType"/> enumeration to interpret
+		/// </param>
+		/// <returns>
+		/// A <see cref="System.String"/> containing the description
+		/// </returns>
+		static public string GetEnumString(OggPlayerMessageType oPlayerMessageType)
+		{
+			switch (oPlayerMessageType)
+			{
+			case OggPlayerMessageType.BufferUnderrun: return "A buffer under-run occured";
+			case OggPlayerMessageType.PlaybackEndOfFile: return "The player finished playing back the file";
+			case OggPlayerMessageType.BufferEndOfFile: return "The player finished buffering the file";
+			case OggPlayerMessageType.NoMessage: return "No message type specified";
+			default: return "Unknown Player Message Type Value";
+			}
+		}
+		
 		
 		/// <summary>
 		/// Returns an OggTag structure with 'empty' data
