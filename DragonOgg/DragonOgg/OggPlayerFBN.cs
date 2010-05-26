@@ -38,46 +38,14 @@ namespace DragonOgg
 	{
 
 		private int m_UpdateDelay;						// Time to wait at the end of each buffer loop
-		
-		// Yummy events
-		public event EventHandler StateChanged;
-		public event EventHandler BufferUnderrun;
-		public event EventHandler PlaybackStarted;
-		public event EventHandler PlaybackFinished;
-		public event EventHandler PlaybackTick;
 	
-		// OpenAL stuff
-		private AudioContext m_Context;
-		private uint m_Source;
-		private ALError m_LastError;
+
 		private uint[] m_Buffers;
 		private int m_BufferCount;
 		private int m_BufferSize;
 				
 		// Property exposure
-		/// <summary>
-		/// Current state of the player as an OggPlayerStatus enumeration. 
-		/// Use OggUtilities.GetEnumString to convert into human-readable information
-		/// </summary>
-		public OggPlayerStatus PlayerState { get { return m_PlayerState; } }
-		/// <summary>
-		/// OggFile object representing the file currently loaded into the player
-		/// </summary>
-		public OggFile CurrentFile { get { return m_CurrentFile; } }
-		/// <summary>
-		/// The last error from the OpenAL subsystem as an ALError enumeration. 
-		/// Use OggUtilities.GetEnumString to convert into human readable information
-		/// </summary>
-		public ALError LastALError { get { return m_LastError; } }
-		/// <summary>
-		/// The position in seconds of the current time being read from the file.
-		/// The actual playing time may differ slightly, especially with large buffers
-		/// </summary>
-		public float TimeCurrent { get { return m_PlayingOffset; } }
-		/// <summary>
-		/// The length of the current file in seconds.
-		/// </summary>
-		public float TimeMax { get { return float.Parse(m_CurrentFile.GetQuickTag(OggTags.Length)); } }
+
 		/// <summary>
 		/// The amount of time to wait after each buffering pass. 
 		/// Use on high-performance systems to reduce processor load by increasing the time between buffering passes. 
@@ -95,21 +63,7 @@ namespace DragonOgg
 		/// Use SetBufferInfo to change this value
 		/// </summary>
 		public int BufferCount { get { return m_BufferCount; } }
-		
-		/// <summary>
-		/// How much of the file has elapsed. Returns a float between 0 & 1
-		/// </summary>
-		public float FractionElapsed { get { float FE = m_PlayingOffset/float.Parse(m_CurrentFile.GetQuickTag(OggTags.Length)); if (FE>1) { return 1; } else if (FE<0) { return 0; } else { return FE; } } }
-		
-		/// <summary>
-		/// Whether a tick event should be raised every TickInterval seconds of played audio
-		/// </summary>
-		public bool TickEnabled { get { return m_TickEnabled; } set { m_TickEnabled = value; } }
-		
-		/// <summary>
-		/// The interval at which tick events should be raised if TickEnabled is true
-		/// </summary>
-		public float TickInterval { get { return m_TickInterval; } set { m_TickInterval = value; } }
+
 		
 		/// <summary>
 		/// Constructor
@@ -127,15 +81,7 @@ namespace DragonOgg
 			m_TickInterval = 1;			// Default tick is every second
 			m_TickEnabled = false;		// Tick event is disabled by default
 			
-			// Create source
-			AL.GenSource(out m_Source);
-			
-			// Configure the source listener
-			AL.Source(m_Source, ALSource3f.Position, 0.0f, 0.0f, 0.0f);
-			AL.Source(m_Source, ALSource3f.Velocity, 0.0f, 0.0f, 0.0f);
-			AL.Source(m_Source, ALSource3f.Direction, 0.0f, 0.0f, 0.0f);
-			AL.Source(m_Source, ALSourcef.RolloffFactor, 0.0f);
-			AL.Source(m_Source, ALSourceb.SourceRelative, true);
+			if (!InitSource()) { throw new OggPlayerSourceException("Source initialisation failed"); }
 		}
 		
 		/// <summary>
@@ -163,7 +109,7 @@ namespace DragonOgg
 		{
 			this.Playback_Stop();
 			AL.DeleteBuffers(m_Buffers);
-			AL.DeleteSource(ref m_Source);
+			if (!DestroySource()) { throw new OggPlayerSourceException("Source destruction failed"); }
 			if (m_Context!=null) { m_Context.Dispose(); m_Context = null; }
 			if (m_CurrentFile!=null) { m_CurrentFile.Dispose(); m_CurrentFile = null; }
 		}
@@ -180,12 +126,6 @@ namespace DragonOgg
 			if (m_CurrentFile!=null) { m_CurrentFile.Dispose(); m_CurrentFile = null; }
 		}
 				
-		/// <summary>
-		/// Set the current file. Only valid when the player is stopped or no file has been set
-		/// </summary>
-		/// <param name="NewFile">
-		/// An <see cref="OggFile"/> object containg the file to set
-		/// </param>
 		public override bool  SetCurrentFile(OggFile NewFile)
 		{
 			// Check current state
@@ -195,23 +135,11 @@ namespace DragonOgg
 			return true;
 		}
 		
-		/// <summary>
-		/// Set the current file. Only valid when the player is stopped or no file has been set
-		/// </summary>
-		/// <param name="NewFilename">
-		/// A <see cref="System.String"/> containing the path to the file to set
-		/// </param>
 		public override bool SetCurrentFile(string NewFilename)
 		{
 			return SetCurrentFile(new OggFile(NewFilename));	
 		}
 		
-		/// <summary>
-		/// Start playing the current file
-		/// </summary>
-		/// <returns>
-		/// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
-		/// </returns>
 		public override OggPlayerCommandReturn Playback_Play() 
 		{
 			// We can only play if we're stopped (this should also stop us trying to play invalid files as we'll then be 'Waiting' or 'Error' rather than stopped)
@@ -274,7 +202,6 @@ namespace DragonOgg
 		{
 			bool Running = true; bool ReachedEOF = false; bool UnderRun = false;
 			
-			if (PlaybackStarted!=null) { PlaybackStarted(this, new EventArgs()); }
 			while (Running)
 			{
 				// See what we're doing
@@ -309,7 +236,7 @@ namespace DragonOgg
 							}
 							// Set state stuff & return
 							StateChange(OggPlayerStatus.Stopped, OggPlayerStateChanger.EndOfFile);
-							if (PlaybackFinished!=null) { PlaybackFinished(this, new EventArgs()); }
+							SendMessage(OggPlayerMessageType.PlaybackEndOfFile);
 							return;
 						}
 					}
@@ -332,7 +259,7 @@ namespace DragonOgg
 					if (ProcessedBuffers>=m_BufferCount)
 					{
 						UnderRun = true;
-						if (BufferUnderrun!=null) { BufferUnderrun(this, new EventArgs()); }
+						SendMessage(OggPlayerMessageType.BufferUnderrun);
 					} else { UnderRun = false; }
 					
 					// Unbuffer any processed buffers
@@ -370,6 +297,7 @@ namespace DragonOgg
 							if (obs.ReturnValue==0)
 							{
 								// End of file
+								SendMessage(OggPlayerMessageType.BufferEndOfFile);
 								ReachedEOF = true;
 								break;
 							}
@@ -382,7 +310,7 @@ namespace DragonOgg
 									AL.SourceStop(m_Source);
 									Running = false;
 								}
-								if (PlaybackFinished!=null) { PlaybackFinished(this, new EventArgs()); }
+								SendMessage(OggPlayerMessageType.FileReadError);
 								break;
 							}
 						}
@@ -392,6 +320,7 @@ namespace DragonOgg
 						{
 							StateChange(OggPlayerStatus.Error, OggPlayerStateChanger.Error);
 							lock (OALLocker) { AL.SourceStop(m_Source); }
+							SendMessage(OggPlayerMessageType.OpenALError, m_LastError);
 							Running = false;
 							break;
 						}
@@ -409,7 +338,7 @@ namespace DragonOgg
 						if (m_PlayingOffset>=m_LastTick+m_TickInterval)
 						{
 							m_LastTick = m_PlayingOffset;
-							if (PlaybackTick!=null) { PlaybackTick(this, new EventArgs()); }
+							SendTick(m_PlayingOffset, m_PlayingOffset);
 						}
 					}
 				}
@@ -432,13 +361,6 @@ namespace DragonOgg
 			}
 		}
 		
-		/// <summary>
-		/// Stop playback. 
-		/// Only valid if the player is playing or paused
-		/// </summary>
-		/// <returns>
-		/// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
-		/// </returns>
 		public override OggPlayerCommandReturn Playback_Stop()
 		{
 			if (!((m_PlayerState == OggPlayerStatus.Paused)||(m_PlayerState == OggPlayerStatus.Playing))) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
@@ -466,13 +388,6 @@ namespace DragonOgg
 			return OggPlayerCommandReturn.Success;
 		}
 		
-		/// <summary>
-		/// Pause playback
-		/// Only valid if the player is playing
-		/// </summary>
-		/// <returns>
-		/// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
-		/// </returns>
 		public override OggPlayerCommandReturn Playback_Pause()
 		{
 			if (!(m_PlayerState == OggPlayerStatus.Playing)) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
@@ -485,13 +400,6 @@ namespace DragonOgg
 			
 		}
 		
-		/// <summary>
-		/// Unpause playback
-		/// Only valid if the player is paused
-		/// </summary>
-		/// <returns>
-		/// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
-		/// </returns>
 		public override OggPlayerCommandReturn Playback_UnPause()
 		{
 			if (!(m_PlayerState == OggPlayerStatus.Paused)) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
@@ -503,16 +411,6 @@ namespace DragonOgg
 			return OggPlayerCommandReturn.Success;
 		}
 		
-		/// <summary>
-		/// Seek to a time
-		/// Only valid if the player is playing or paused
-		/// </summary>
-		/// <param name="RequestedTime">
-		/// A <see cref="System.Single"/> indicating the position in seconds within the file to seek to
-		/// </param>
-		/// <returns>
-		/// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
-		/// </returns>
 		public override OggPlayerCommandReturn Playback_Seek(float RequestedTime)
 		{
 			if (!((m_PlayerState == OggPlayerStatus.Playing)||(m_PlayerState == OggPlayerStatus.Playing))) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }

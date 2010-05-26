@@ -20,6 +20,8 @@
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using OpenTK.Audio;
+using OpenTK.Audio.OpenAL;
 
 namespace DragonOgg
 {
@@ -31,22 +33,44 @@ namespace DragonOgg
 	public abstract class OggPlayer : IDisposable
 	{
 
-		protected OggPlayerStatus m_PlayerState; 		// Player state
+		
+		#region "Current File"
 		protected OggFile m_CurrentFile;				// Currently active file
 		
-		protected float m_PlayingOffset;				// Current time in playback
-		protected float m_BufferOffset;				// Current time in buffer
+		/// <summary>
+		/// OggFile object representing the file currently loaded into the player
+		/// </summary>
+		public OggFile CurrentFile { get { return m_CurrentFile; } }
+		
+		/// <summary>
+		/// Set the current file. Only valid when the player is stopped or no file has been set
+		/// </summary>
+		/// <param name="NewFile">
+		/// An <see cref="OggFile"/> object containg the file to set
+		/// </param>
+		public abstract bool SetCurrentFile(string FileName);
+		/// <summary>
+		/// Set the current file. Only valid when the player is stopped or no file has been set
+		/// </summary>
+		/// <param name="NewFilename">
+		/// A <see cref="System.String"/> containing the path to the file to set
+		/// </param>
+		public abstract bool SetCurrentFile(OggFile File);
+		#endregion
 
-		protected bool m_TickEnabled;				// Tick control flag
-		protected float m_TickInterval;				// Interval between tick events
-		protected float m_LastTick;					// Last tick
+		#region "State Event"
+		protected OggPlayerStatus m_PlayerState; 		// Player state
 		
-		public event OggPlayerStateChangedHandler StateChanged; 
-		public event OggPlayerMessageHandler PlayerMessage;
-		public event OggPlayerTickHandler Tick;
+		/// <summary>
+		/// Raised when the state of the player changes
+		/// </summary>
+		public event OggPlayerStateChangedHandler StateChanged;
 		
-		protected static readonly object StateLocker = new object();
-		protected static object OALLocker = new object();
+		/// <summary>
+		/// Current state of the player as an OggPlayerStatus enumeration. 
+		/// Use OggUtilities.GetEnumString to convert into human-readable information
+		/// </summary>
+		public OggPlayerStatus PlayerState { get { return m_PlayerState; } }
 		
 		protected void StateChange(OggPlayerStatus NewState) { StateChange(NewState, OggPlayerStateChanger.Internal); }
 		protected void StateChange(OggPlayerStatus NewState, OggPlayerStateChanger Reason)
@@ -57,6 +81,39 @@ namespace DragonOgg
 			#endif
 			m_PlayerState = NewState;
 		}
+		#endregion		
+		
+		#region "Tick Event"
+		protected bool m_TickEnabled;				// Tick control flag
+		protected float m_TickInterval = 1f;		// Interval between tick events
+		protected float m_LastTick;				// Last tick
+		
+		/// <summary>
+		/// OggPlayer.Tick events will be raised every OggPlayer.TickInterval seconds of audio output if this is true
+		/// </summary>
+		public bool TickEnabled { get { return m_TickEnabled; } set { m_TickEnabled = value; } }
+		/// <summary>
+		/// Seconds between OggPlayer.Tick events (when OggPlayer.TickEnabled is true)
+		/// </summary>
+		public float TickInterval { get { return m_TickInterval; } set { m_TickInterval = value; } }
+		
+		/// <summary>
+		/// Raised every TickInterval seconds of playvack when TickEnabled is true
+		/// </summary>
+		public event OggPlayerTickHandler Tick;
+		
+		protected void SendTick(float PlaybackTime, float BufferTime)
+		{
+			if (Tick!=null) { Tick(this, new OggPlayerTickArgs(PlaybackTime, BufferTime)); }
+		}
+		                        
+		#endregion		
+		
+		#region "Message Event"
+		/// <summary>
+		/// Raised when the player sends a message (e.g. a buffer under-run or on reaching the end of a file)
+		/// </summary>
+		public event OggPlayerMessageHandler PlayerMessage;	
 		
 		protected void SendMessage(OggPlayerMessageType Message) { SendMessage(Message, null); }
 		protected void SendMessage(OggPlayerMessageType Message, object Params)
@@ -66,21 +123,154 @@ namespace DragonOgg
 				Console.WriteLine(DateTime.Now.ToLongTimeString() + "\tOggPlayer::SendMessage -- Message: " + OggUtilities.GetEnumString(Message));
 			#endif
 		}
-			
-		public abstract OggPlayerCommandReturn Playback_Play();
-		public abstract OggPlayerCommandReturn Playback_Stop();
-		public abstract OggPlayerCommandReturn Playback_Pause();
-		public abstract OggPlayerCommandReturn Playback_UnPause();
-		public abstract OggPlayerCommandReturn Playback_Seek(float SeekTime);
+		#endregion
 		
-		public abstract bool SetCurrentFile(string FileName);
-		public abstract bool SetCurrentFile(OggFile File);
+		#region "Playback Control"
+		/// <summary>
+		/// Start playing the current file
+		/// </summary>
+		/// <returns>
+		/// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
+		/// </returns>
+		public abstract OggPlayerCommandReturn Playback_Play();
+		/// <summary>
+		/// Stop playback. 
+		/// Only valid if the player is playing or paused
+		/// </summary>
+		/// <returns>
+		/// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
+		/// </returns>
+		public abstract OggPlayerCommandReturn Playback_Stop();
+		/// <summary>
+		/// Pause playback
+		/// Only valid if the player is playing
+		/// </summary>
+		/// <returns>
+		/// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
+		/// </returns>
+		public abstract OggPlayerCommandReturn Playback_Pause();
+		/// <summary>
+		/// Unpause playback
+		/// Only valid if the player is paused
+		/// </summary>
+		/// <returns>
+		/// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
+		/// </returns>
+		public abstract OggPlayerCommandReturn Playback_UnPause();
+				/// <summary>
+		/// Seek to a time
+		/// Only valid if the player is playing or paused
+		/// </summary>
+		/// <param name="RequestedTime">
+		/// A <see cref="System.Single"/> indicating the position in seconds within the file to seek to
+		/// </param>
+		/// <returns>
+		/// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
+		/// </returns>
+		public abstract OggPlayerCommandReturn Playback_Seek(float RequestedTime);
+		#endregion
+		
+		#region "Timing"
+		protected float m_PlayingOffset;				// Current time in playback		
+		/// <summary>
+		/// The current time of playback within the file
+		/// </summary>
+		public float AmountPlayed { get { return m_PlayingOffset; } }
+		/// <summary>
+		/// How much of the file has been played as a fraction of it's total (always returns between 0 & 1)
+		/// </summary>
+		public float FractionPlayed { 
+			get { 
+				float FE = m_PlayingOffset/float.Parse(m_CurrentFile.GetQuickTag(OggTags.Length)); 
+				if (FE>1) { return 1; } else if (FE<0) { return 0; } else { return FE; } 
+			} 
+		}
+		
+		protected float m_BufferOffset;				// Current time in buffer
+		/// <summary>
+		/// The current time of buffer within the file
+		/// </summary>
+		public float AmountBuffered { get { return m_BufferOffset; } }
+		/// <summary>
+		/// How much of the file has been buffered as a fraction of it's total (always returns between 0 & 1)
+		/// </summary>
+		public float FractionBuffered { 
+			get { 
+				float FE = m_BufferOffset/float.Parse(m_CurrentFile.GetQuickTag(OggTags.Length)); 
+				if (FE>1) { return 1; } else if (FE<0) { return 0; } else { return FE; } 
+			} 
+		}
 
+		/// <summary>
+		/// The length of the file in seconds
+		/// </summary>
+		public float FileLengthTime { get { if (m_CurrentFile==null) { return -1; } else { return float.Parse(m_CurrentFile.GetQuickTag(OggTags.Length)); } } }
+		#endregion
+		
+		#region "OpenAL"
+		protected AudioContext m_Context;				// Audio device context
+		protected uint m_Source;						// Output source handle
+		protected ALError m_LastError;				// OpenAL Error
+		
+		/// <summary>
+		/// The last error from the OpenAL subsystem as an ALError enumeration. 
+		/// Use OggUtilities.GetEnumString to convert into human readable information
+		/// </summary>
+		public ALError LastALError { get { return m_LastError; } }
+		
+		protected bool InitSource()
+		{
+			try 
+			{
+				// Create source
+				AL.GenSource(out m_Source);
+			
+				// Configure the source listener
+				AL.Source(m_Source, ALSource3f.Position, 0.0f, 0.0f, 0.0f);
+				AL.Source(m_Source, ALSource3f.Velocity, 0.0f, 0.0f, 0.0f);
+				AL.Source(m_Source, ALSource3f.Direction, 0.0f, 0.0f, 0.0f);
+				AL.Source(m_Source, ALSourcef.RolloffFactor, 0.0f);
+				AL.Source(m_Source, ALSourceb.SourceRelative, true);	
+				return true;
+			}
+			catch (Exception ex)
+			{
+				return false;	
+			}
+		}
+		
+		protected bool DestroySource()
+		{
+			try
+			{
+				if ((AL.GetSourceState(m_Source)==ALSourceState.Paused)||(AL.GetSourceState(m_Source)==ALSourceState.Playing))
+				{
+					AL.SourceStop(m_Source);	
+				}
+				AL.DeleteSource(ref m_Source);
+				return true;
+			}
+			catch (Exception ex)
+			{
+				return false;
+			}
+				
+		}
+		#endregion		
+		
+		protected static readonly object StateLocker = new object();
+		protected static object OALLocker = new object();
+		
+		
+		/// <summary>
+		/// IDisposable implementation
+		/// </summary>
 		public abstract void Dispose();
 			
 	}
 	
 	#region "Events"
+	
 	/// <summary>
 	/// Event handler for changes in OggPlayer state
 	/// </summary>
@@ -211,5 +401,24 @@ namespace DragonOgg
 		/// </summary>
 		public float BufferedTime { get { return m_BufferedTime; } }
 	}
+	#endregion
+	
+	#region "Exceptions"
+	
+	/// <summary>
+	/// Exception raised when there is an issue with interactions with the OpenAL source.
+	/// LastALError may have more information
+	/// </summary>
+	public class OggPlayerSourceException : Exception
+	{
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="Msg">
+		/// The message of the exception as a <see cref="System.String"/>
+		/// </param>
+		public OggPlayerSourceException(string Msg) : base(Msg) { }
+	}
+	
 	#endregion
 }

@@ -81,7 +81,7 @@ namespace DragonOgg
 	/// <summary>
 	/// Enumeration of the types of messages sent by the OggPlayer class
 	/// </summary>
-	public enum OggPlayerMessageType { NoMessage=0, BufferUnderrun, PlaybackEndOfFile, BufferEndOfFile }
+	public enum OggPlayerMessageType { NoMessage=0, BufferUnderrun, PlaybackEndOfFile, BufferEndOfFile, OpenALError, FileReadError }
 	
 	/// <summary>
 	/// Enumeration of playlist formats (used with OggPlaylistWriter)
@@ -362,6 +362,8 @@ namespace DragonOgg
 			case OggPlayerMessageType.PlaybackEndOfFile: return "The player finished playing back the file";
 			case OggPlayerMessageType.BufferEndOfFile: return "The player finished buffering the file";
 			case OggPlayerMessageType.NoMessage: return "No message type specified";
+			case OggPlayerMessageType.OpenALError: return "OpenAL Error!";
+			case OggPlayerMessageType.FileReadError: return "File read error!";
 			default: return "Unknown Player Message Type Value";
 			}
 		}

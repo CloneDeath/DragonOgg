@@ -72,21 +72,39 @@ namespace DragonOgg
 		public OggFile (string Filename)
 		{
 			// Check that the file exists
-			if (!(System.IO.File.Exists(Filename))) { throw new FileNotFoundException("Unable to load new OggFile", Filename); }
+			if (!(System.IO.File.Exists(Filename))) { throw new OggFileReadException("File not found", Filename); }
 			// Load the relevant objects
 			m_Filename = Filename;
-			m_CSVorbisFile = new VorbisFile(m_Filename);
-			m_TagLibFile = TagLib.File.Create(m_Filename);
+			try
+			{
+				m_CSVorbisFile = new VorbisFile(m_Filename);
+			}
+			catch (Exception ex)
+			{
+				throw new OggFileReadException("Unable to open file for data reading\n" + ex.Message, Filename);	
+			}
+			try
+			{
+				m_TagLibFile = TagLib.File.Create(m_Filename);
+			}
+			catch (TagLib.UnsupportedFormatException ex)
+			{
+				throw new OggFileReadException("Unsupported format (not an ogg?)\n" + ex.Message, Filename);
+			}
+			catch (TagLib.CorruptFileException ex)
+			{
+				throw new OggFileCorruptException(ex.Message, Filename, "Tags");
+			}
 			
 			// Populate some other info shizzle and do a little bit of sanity checking
 			m_Streams = m_CSVorbisFile.streams();
-			if (m_Streams<=0) { throw new Exception("File doesn't contain any logical bitstreams"); }
+			if (m_Streams<=0) { throw new OggFileReadException("File doesn't contain any logical bitstreams", Filename); }
 			// Assuming <0 is for whole file and >=0 is for specific logical bitstreams
 			m_Bitrate = m_CSVorbisFile.bitrate(-1);
 			m_LengthTime = (int)m_CSVorbisFile.time_total(-1);
 			// Figure out the ALFormat of the stream
 			m_Info = m_CSVorbisFile.getInfo();	// Get the info of the first stream, assuming all streams are the same? Dunno if this is safe tbh
-			if (m_Info[0] == null) { throw new Exception("Unable to determine Format{FileInfo.Channels} for first bitstream"); }
+			if (m_Info[0] == null) { throw new OggFileReadException("Unable to determine Format{FileInfo.Channels} for first bitstream", Filename); }
 			if (m_TagLibFile.Properties.AudioBitrate==16) {
 				m_Format = (m_Info[0].channels)==1 ? ALFormat.Mono16 : ALFormat.Stereo16; // This looks like a fudge, but I've seen it a couple of times (what about the other formats I wonder?)
 			}
@@ -500,4 +518,66 @@ namespace DragonOgg
 		#endregion
 	}
 
+	/// <summary>
+	/// Exception raised when the specified file cannot be read.
+	/// </summary>
+	public class OggFileReadException : Exception
+	{
+		private string m_Filename;
+		
+		/// <summary>
+		/// The filename of the file that the exception refers to
+		/// </summary>
+		public string Filename { get { return m_Filename; } }
+		
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="Msg">
+		/// A <see cref="System.String"/> containing the message to the user
+		/// </param>
+		/// <param name="FName">
+		/// A <see cref="System.String"/> containing the filename that the exception refers to
+		/// </param>
+		public OggFileReadException(string Msg, string FName) : base(Msg)
+		{
+			m_Filename = FName;
+		}
+	}
+	
+	/// <summary>
+	/// Exception raised when the specified file is corrupt
+	/// </summary>
+	public class OggFileCorruptException : Exception
+	{
+		private string m_Filename;
+		private string m_Section;
+		
+		/// <summary>
+		/// The filename of the file that the exception refers to
+		/// </summary>
+		public string Filename { get { return m_Filename; } }
+		/// <summary>
+		/// The section of the file which was corrupt (e.g. 'Tags' or 'Data' etc)
+		/// </summary>
+		public string Section { get { return m_Section; } }
+		
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="Msg">
+		/// A <see cref="System.String"/> containing the message to the user
+		/// </param>
+		/// <param name="Filename">
+		/// A <see cref="System.String"/> containing the filename that the exception refers to
+		/// </param>
+		/// <param name="Section">
+		/// A <see cref="System.String"/> containing the name of the section of the file that was corrupt
+		/// </param>
+		public OggFileCorruptException(string Msg, string Filename, string Section) : base (Msg)
+		{
+			m_Filename = Filename;
+			m_Section = Section;
+		}
+	}
 }
