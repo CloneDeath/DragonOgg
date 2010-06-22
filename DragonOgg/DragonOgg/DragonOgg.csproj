@@ -35,7 +35,7 @@
     <Reference Include="System" />
     <Reference Include="OpenTK, Version=1.0.0.201, Culture=neutral, PublicKeyToken=bad199fe84eb3df4">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\opentk-1.0.0-rc1\Binaries\OpenTK\Release\OpenTK.dll</HintPath>
+      <HintPath>..\..\..\libs\OpenTK.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -213,6 +213,7 @@
     <Compile Include="OggPlaylistWriter.cs" />
     <Compile Include="OggPlayerFBN.cs" />
     <Compile Include="OggPlayerVBN.cs" />
+    <Compile Include="Queues.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
