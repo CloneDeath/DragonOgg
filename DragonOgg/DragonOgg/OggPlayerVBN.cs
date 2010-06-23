@@ -169,11 +169,11 @@ namespace DragonOgg
 			bool Running = true;
 			while (Running)
 			{
+				if (m_BufferSeekRequested) { Thread.Sleep(10); continue; }
 				if (m_StopRequested) { Running = false; continue; }
 				if (m_ReachedEOF) { Running = false; continue; }
 				if (m_PlayerState==OggPlayerStatus.Error) { Running = false; continue; }
 				if (m_PauseRequested&&m_PauseBuffer) { Thread.Sleep(10); continue; }
-				if (m_BufferSeekRequested) { Thread.Sleep(10); continue; }
 				if (m_BufferedSizeHeap.Total>m_MaxTotalBufferSize) { Thread.Sleep(10); continue; }
 				OggBufferSegment obs;
 				obs = m_CurrentFile.GetBufferSegment((int)m_BufferSize);
@@ -230,10 +230,11 @@ namespace DragonOgg
 			bool Running = true;
 			while (Running)
 			{
+				if (m_SeekRequested) { Thread.Sleep(10); continue; }
 				if (m_StopRequested) { Running = false; continue; }
 				if (m_PlayerState==OggPlayerStatus.Error) { Running = false; continue; }
 				if (m_PauseRequested) { Thread.Sleep(10); continue; }
-				if (m_SeekRequested) { Thread.Sleep(10); continue; }
+				
 				
 				// Check currently queued buffers
 				int QueuedBuffers;
@@ -333,15 +334,12 @@ namespace DragonOgg
 			// Put the playback & buffer threads on standby for now
 			m_SeekRequested = true;
 			m_BufferSeekRequested = true;
-			// Give the threads a chance to enact this
-			Thread.Sleep(m_PrebufferDelay);
 			// Stop the source	
 			lock (OALLocker) { if (AL.GetSourceState(m_Source)!=ALSourceState.Stopped) { AL.SourceStop(m_Source); } }
 			// Change state to reflect seeking
 			StateChange(OggPlayerStatus.Seeking, OggPlayerStateChanger.UserRequest);
 			// Empty the buffers
 			ClearBuffers();
-			//ResetPlayerCondition();
 			// Move the file to the right place
 			m_CurrentFile.SeekToTime(SeekTime);
 			// Set timing values correctly
@@ -349,6 +347,12 @@ namespace DragonOgg
 			m_PlayingOffset = SeekTime;
 			// Unpause the buffer thread
 			m_BufferSeekRequested = false;
+			// Restart the buffer thread if it's already shut down due to EOF
+			if (m_ReachedEOF)
+			{
+				m_ReachedEOF = false;
+				new Thread(new ThreadStart(BufferThread)).Start();
+			}
 			// Wait for the pre-buffer delay to elapse
 			Thread.Sleep(m_PrebufferDelay);
 			// Unpause the player thread

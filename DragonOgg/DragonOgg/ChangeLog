@@ -1,3 +1,8 @@
+2010-06-23  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* OggPlayerVBN.cs: Bugfix: Resolved issue with being unable to
+	  seek once the end of the file had been buffered
+
 2010-06-22  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
 	* OggPlayerVBN.cs: Player code added
