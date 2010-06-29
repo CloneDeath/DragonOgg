@@ -84,10 +84,18 @@ namespace DragonOgg
 		/// </returns>
 		public int Pop()
 		{
-			if (m_Heap.Count<=0) { return -1; }
-			int retVal = (int) m_Heap.Dequeue();
-			m_Total -=  retVal;
-			return retVal;
+			if (m_Heap.Count<=0) { return 0; }
+			try 
+			{ 
+				int retVal = (int) m_Heap.Dequeue();
+				m_Total -=  retVal;
+				return retVal;
+			} 
+			catch (Exception ex) 
+			{ 
+				return 0; 
+			} 
+
 		}
 	}
 	
@@ -151,10 +159,18 @@ namespace DragonOgg
 		/// </returns>
 		public float Pop()
 		{
-			if (m_Heap.Count<=0) { return -1; }
-			float retVal = (float) m_Heap.Dequeue();
-			m_Total -=  retVal;
-			return retVal;
+			if (m_Heap.Count<=0) { return 0; }
+			try 
+			{ 
+				float retVal = (float) m_Heap.Dequeue();
+				m_Total -=  retVal;
+				return retVal;
+			} 
+			catch (Exception ex) 
+			{ 
+				return 0; 
+			}
+			
 		}
 	}
 	
@@ -217,10 +233,17 @@ namespace DragonOgg
 		/// </returns>
 		public long Pop()
 		{
-			if (m_Heap.Count<=0) { return -1; }
-			long retVal = (long) m_Heap.Dequeue();
-			m_Total -=  retVal;
-			return retVal;
+			if (m_Heap.Count<=0) { return 0; }
+			try 
+			{ 
+				long retVal = (long) m_Heap.Dequeue();
+				m_Total -=  retVal;
+				return retVal;
+			} 
+			catch (Exception ex) 
+			{ 
+				return 0; 
+			}
 		}
 	}
 }

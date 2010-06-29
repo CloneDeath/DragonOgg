@@ -74,8 +74,15 @@ namespace DragonOgg
 		public long MaxTotalBufferSize { get { return m_MaxTotalBufferSize; } set { m_MaxTotalBufferSize = value; } }
 		/// <summary>
 		/// Time to wait in ms between buffering & beginning playback. Default is 250ms. Smaller values improve responsiveness but may cause underruns.
+		/// Cannot be less than 2*UpdateDelay - setting to a value lower than this is equivalent to setting to 2*UpdateDelay
 		/// </summary>
-		public int PrebufferDelay { get { return m_PrebufferDelay; } set { m_PrebufferDelay = value; } }
+		public int PrebufferDelay { 
+			get { return m_PrebufferDelay; } 
+			set {
+				if (value<m_UpdateDelay*2) { m_PrebufferDelay = m_UpdateDelay*2; }
+				else { m_PrebufferDelay = value; }
+			}
+		}
 		
 		/// <summary>
 		/// Constructor
@@ -88,6 +95,7 @@ namespace DragonOgg
 			m_TickInterval = 1;
 			m_TickEnabled = false;
 			m_PrebufferDelay = 250;				// 1/4 of a second to pre-buffer before playback/seeking
+			m_UpdateDelay = 5;
 			m_PauseBuffer = true;
 			m_Context = new AudioContext();
 			if (!InitSource()) { throw new OggPlayerSourceException("Source initialisation failed"); } 
@@ -219,6 +227,8 @@ namespace DragonOgg
 					SendMessage(OggPlayerMessageType.OpenALError, m_LastError);
 					Running = false;
 				}
+				
+				if (m_UpdateDelay>0) { Thread.Sleep(m_UpdateDelay); }
 			}
 		}
 		
@@ -259,19 +269,19 @@ namespace DragonOgg
 					}
 					continue;
 				}
-				
+							
 				// See if we're playing
 				if (AL.GetSourceState(m_Source)!=ALSourceState.Playing)
 				{
 					lock (OALLocker) { AL.SourcePlay(m_Source); }	
+					#if (DEBUG)
+					Console.WriteLine("Source restarted");
+					#endif
 				}
 				
 				// Count processed buffers
 				int ProcessedBuffers;
 				AL.GetSource(m_Source, ALGetSourcei.BuffersProcessed, out ProcessedBuffers);
-				#if (DEBUG)
-				Console.WriteLine("P: " + ProcessedBuffers.ToString() + "\t\tQ: " + QueuedBuffers.ToString());
-				#endif
 				if (ProcessedBuffers>0)
 				{
 					// We've got some buffers to desclurple
@@ -282,8 +292,15 @@ namespace DragonOgg
 							// Unqueue the first buffer from the source
 							AL.SourceUnqueueBuffer((int) m_Source);
 							// De-allocate the buffer from memory
-							uint BufferRef = (uint) m_BufferRefs.Dequeue();
-							AL.DeleteBuffer(ref BufferRef);
+							if (m_BufferRefs.Count>0) 
+							{
+								uint BufferRef = (uint) m_BufferRefs.Dequeue();
+								AL.DeleteBuffer(ref BufferRef);
+							}
+							else
+							{
+								SendMessage(OggPlayerMessageType.BufferAnomaly);
+							}
 							// Update the internal quantity tracking
 							m_BufferedSizeHeap.Pop();
 							m_PlayingOffset += m_BufferedTimeHeap.Pop();
@@ -300,6 +317,8 @@ namespace DragonOgg
 					}
 				}
 				else { Thread.Sleep(10); }
+				
+				if (m_UpdateDelay>0) { Thread.Sleep(m_UpdateDelay); }
 			}
 		}
 		
@@ -345,6 +364,8 @@ namespace DragonOgg
 			// Set timing values correctly
 			m_BufferOffset = SeekTime;
 			m_PlayingOffset = SeekTime;
+			// Set tick values
+			m_LastTick = SeekTime - m_TickInterval;
 			// Unpause the buffer thread
 			m_BufferSeekRequested = false;
 			// Restart the buffer thread if it's already shut down due to EOF
@@ -398,7 +419,7 @@ namespace DragonOgg
 			// Give the buffer time to catch up
 			if (m_PauseBuffer)
 			{
-				Thread.Sleep(50);
+				Thread.Sleep(m_PrebufferDelay);
 			}
 			// Start the playback
 			AL.SourcePlay(m_Source);

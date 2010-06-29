@@ -37,8 +37,6 @@ namespace DragonOgg
 	public class OggPlayerFBN : OggPlayer
 	{
 
-		private int m_UpdateDelay;						// Time to wait at the end of each buffer loop
-	
 
 		private uint[] m_Buffers;
 		private int m_BufferCount;
@@ -46,13 +44,7 @@ namespace DragonOgg
 				
 		// Property exposure
 
-		/// <summary>
-		/// The amount of time to wait after each buffering pass. 
-		/// Use on high-performance systems to reduce processor load by increasing the time between buffering passes. 
-		/// WARNING: VERY LIKELY TO CAUSE STUTTERING: USE ONLY IF REALLY NEEDED
-		/// The default is 10ms. Set lower if you are getting buffer under-runs and cannot increase the buffer count/size.
-		/// </summary>
-		public int UpdateDelay { get { return m_UpdateDelay; } set { m_UpdateDelay = value; } }
+
 		/// <summary>
 		/// The current size of each buffer block
 		/// Use SetBufferInfo to change this value
@@ -357,7 +349,7 @@ namespace DragonOgg
 					Running = false;
 				}
 				// Allow other shizzle to execute
-				Thread.Sleep(m_UpdateDelay);
+				if (m_UpdateDelay>0) { Thread.Sleep(m_UpdateDelay); }
 			}
 		}
 		

@@ -258,9 +258,17 @@ namespace DragonOgg
 		}
 		#endregion		
 		
+		#region "Threading"
 		protected static readonly object StateLocker = new object();
 		protected static object OALLocker = new object();
 		
+	
+		protected int m_UpdateDelay;			// Amount of time to wait at the end of each thread loop to allow other stuff to execute
+		/// <summary>
+		/// The amount of time to wait after each pass
+		/// </summary>
+		public int UpdateDelay { get { return m_UpdateDelay; } set { m_UpdateDelay = value; } }
+		#endregion
 		
 		/// <summary>
 		/// IDisposable implementation
