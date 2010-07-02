@@ -1,3 +1,8 @@
+2010-07-02  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* OggPlayerVBN.cs: Bugifx: Rearranged EOF message order to be
+	  more sane for end users
+
 2010-06-29  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
 	* OggPlayerFBN.cs: Moved UpdateDelay to the base OggPlayer

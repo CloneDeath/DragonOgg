@@ -256,10 +256,10 @@ namespace DragonOgg
 				{
 					if (m_ReachedEOF)
 					{
-						SendMessage(OggPlayerMessageType.PlaybackEndOfFile);
 						if (AL.GetSourceState(m_Source)!=ALSourceState.Stopped) { AL.SourceStop(m_Source); }
 						Playback_Stop(true);
 						StateChange(OggPlayerStatus.Stopped, OggPlayerStateChanger.EndOfFile);
+						SendMessage(OggPlayerMessageType.PlaybackEndOfFile);
 						Running = false;
 					}
 					else
