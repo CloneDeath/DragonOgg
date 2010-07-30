@@ -91,7 +91,7 @@ namespace DragonOgg
 		{
 			m_PlayerState = OggPlayerStatus.Waiting;
 			m_BufferSize = 8096;				// Using 8KB buffer segments
-			m_MaxTotalBufferSize = 16777216;	// Max of 16MB buffered at any time
+			m_MaxTotalBufferSize = 8388608;		// Max of 8MB buffered at any time
 			m_TickInterval = 1;
 			m_TickEnabled = false;
 			m_PrebufferDelay = 250;				// 1/4 of a second to pre-buffer before playback/seeking
@@ -250,9 +250,10 @@ namespace DragonOgg
 				int QueuedBuffers;
 				AL.GetSource(m_Source, ALGetSourcei.BuffersQueued, out QueuedBuffers);
 				// Check for underruns/playback complete
-				// We're using one 'cos it doesn't seem to handle the last buffer properly (not sure why yet)
+				// We're using -two- 'cos it doesn't seem to handle the last buffer properly (and the last 2 one windows systems
+				// (not sure why yet - need to do some investigatling). This shouldn't cause any problems unless a large Buffer_Size is set
 				// Anyway: Fear the evil magic hack 'cos this should really be if (QueuedBuffers<=0)
-				if (QueuedBuffers<=1)
+				if (QueuedBuffers<=2)
 				{
 					if (m_ReachedEOF)
 					{
@@ -265,7 +266,7 @@ namespace DragonOgg
 					else
 					{
 						SendMessage(OggPlayerMessageType.BufferUnderrun);
-						Thread.Sleep(10);
+						Thread.Sleep(m_PrebufferDelay);
 					}
 					continue;
 				}

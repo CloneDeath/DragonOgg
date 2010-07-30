@@ -491,7 +491,15 @@ namespace DragonOgg
 			if(!(m_CSVorbisFile.seekable())) { return OggPlayerCommandReturn.OperationNotValid; }
 			if(Seconds>m_CSVorbisFile.time_total(-1)) { return OggPlayerCommandReturn.ValueOutOfRange; }
 			if(Seconds<0) { return OggPlayerCommandReturn.ValueOutOfRange; }
-			if(m_CSVorbisFile.time_seek(Seconds)!=0) { return OggPlayerCommandReturn.Error; }
+			try 
+			{ 
+				if(m_CSVorbisFile.time_seek(Seconds)!=0) { return OggPlayerCommandReturn.Error; } 
+			} 
+			catch(Exception ex)
+			{
+				if (typeof(IndexOutOfRangeException)==ex.GetType()) { return OggPlayerCommandReturn.ValueOutOfRange; }
+				return OggPlayerCommandReturn.Error;
+			}
 			return OggPlayerCommandReturn.Success;
 		}
 		

@@ -1,3 +1,16 @@
+2010-07-30  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* OggFile.cs: Added error handling for in case of odd return
+	  from csVorbisFile.time_seek
+
+	* OggPlayerVBN.cs: Halved default max buffer size to possibly
+	  fix hardware overruns on some systems
+	Changed to QueuedBuffers<=2 in playback thread to try and fix
+	  some weirdness with OpenAL not consuming the last couple of
+	  buffers
+	Changed the delay on an underrun in the player thread to the
+	  PrebufferDelay to make it more sensible
+
 2010-07-02  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
 	* OggPlayerVBN.cs: Bugifx: Rearranged EOF message order to be
