@@ -79,11 +79,6 @@ namespace DragonOgg
 		public OggPlaylistFile this[int i] { get { return (OggPlaylistFile) m_FileHeap[i]; } set { m_FileHeap[i] = value; } }
 		
 		/// <summary>
-		/// Raised when the playlist changes state
-		/// </summary>
-		public event EventHandler PlaylistStateChanged;
-		
-		/// <summary>
 		/// Enumerator implementation
 		/// </summary>
 		/// <returns>

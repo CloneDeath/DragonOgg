@@ -1,5 +1,11 @@
 2010-09-17  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
+	* OggPlayer.cs: Tidied up whitespace
+
+	* OggPlaylist.cs: Removed unused event handler
+
+2010-09-17  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
 	* OggPlayer.cs: Added some protection against
 	  NullReferenceExceptions when trying to get
 	  FractionPlayed/FractionBuffered when the player has no file.

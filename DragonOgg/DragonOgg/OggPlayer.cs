@@ -32,7 +32,6 @@ namespace DragonOgg
 	/// </summary>
 	public abstract class OggPlayer : IDisposable
 	{
-
 		
 		#region "Current File"
 		protected OggFile m_CurrentFile;				// Currently active file
