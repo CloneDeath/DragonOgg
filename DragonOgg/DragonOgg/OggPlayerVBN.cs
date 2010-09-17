@@ -142,6 +142,7 @@ namespace DragonOgg
 			int BufferCount; AL.GetSource(m_Source, ALGetSourcei.BuffersQueued, out BufferCount);
 			if (BufferCount>0) { AL.SourceUnqueueBuffers((int)m_Source, BufferCount); }
 			// De-allocate buffers from memory
+			if (m_BufferRefs==null) { return; }
 			while (m_BufferRefs.Count>0)
 			{
 				uint BufferID = (uint) m_BufferRefs.Dequeue();

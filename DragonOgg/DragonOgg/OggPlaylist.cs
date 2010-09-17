@@ -36,10 +36,10 @@ namespace DragonOgg
 		private bool m_Random;				// Whether the playlist should use a random order for playing
 		private int m_Position;			// Position of the playlist within the array
 		private bool m_AutoOrder;			// Flag indicating whether the playlist automatically orders items on Add/Remove
+		private bool m_AutoUncache;		// Flag indicating whether the playlist automatically uncaches the previous file when GetNextFile is called
 		private Random m_RandomGenerator;	// Random number generator
-		private OggPlayer m_Player;			// Player object for output
 		private OggPlaylistFile m_CurrentFile;		// Currently playing file
-		private OggPlaylistStatus m_PlaylistState;	// Playlist status enumeration
+		private OggPlaylistFile m_PreviousFile;		// Previous file
 		
 		/// <summary>
 		/// Flag indicating whether the playlist will loop when it comes to the end
@@ -51,13 +51,17 @@ namespace DragonOgg
 		/// </summary>
 		public bool RandomOrder { get { return m_Random; } set { m_Random = value; } }
 		/// <summary>
+		/// Flag indicating whether the previously played file should be uncached to save memory when GetNextFile or GetPrevFile are called
+		/// </summary>
+		public bool AutoUncache { get { return m_AutoUncache; } set { m_AutoUncache = value; } }
+		/// <summary>
 		/// The currently playing file
 		/// </summary>
 		public OggPlaylistFile CurrentFile { get { return m_CurrentFile; } }
 		/// <summary>
-		/// The current state of the player
+		/// The previously played file
 		/// </summary>
-		public OggPlaylistStatus PlaylistState { get { return m_PlaylistState; } }
+		public OggPlaylistFile PreviousFile { get { return m_PreviousFile; } }
 		/// <summary>
 		/// The position within the playlist. This is not necessarily the order number of the current track
 		/// </summary>
@@ -67,12 +71,12 @@ namespace DragonOgg
 		/// </summary>
 		public int PositionOrderNum { get { return m_CurrentFile.OrderNum; } }
 		/// <summary>
-		/// Retrieve a specific file from the playlist. Trying to set the currently playling file will fail with an AccessViolationException
+		/// Retrieve a specific file from the playlist.
 		/// </summary>
 		/// <param name="i">
 		/// A <see cref="System.Int32"/>
 		/// </param>
-		public OggPlaylistFile this[int i] { get { return (OggPlaylistFile) m_FileHeap[i]; } 	set { if (i == m_Position) { throw new AccessViolationException(); } m_FileHeap[i] = value; } }
+		public OggPlaylistFile this[int i] { get { return (OggPlaylistFile) m_FileHeap[i]; } set { m_FileHeap[i] = value; } }
 		
 		/// <summary>
 		/// Raised when the playlist changes state
@@ -111,17 +115,11 @@ namespace DragonOgg
 			m_Random = false;
 			m_RandomGenerator = new Random();
 			m_Repeat = false;
-			m_PlaylistState = OggPlaylistStatus.WaitingForPlayer;
 		}
 		
 		// Deconstructor
 		~OggPlaylist()
 		{
-			if (m_Player!=null)
-			{
-				m_Player.Playback_Stop();
-				m_Player = null;
-			}
 			m_FileHeap.Clear();
 			m_FileHeap = null;
 			m_CurrentFile = null;
@@ -154,36 +152,47 @@ namespace DragonOgg
 		}
 		
 		/// <summary>
-		/// Assign a player object to this playlist
+		/// Retrieves the next file for playback & advance the internal pointers
 		/// </summary>
-		/// <param name="PlayerObject">
-		/// The <see cref="OggPlayer"/> to assign
-		/// </param>
-		public void AssignPlayer(OggPlayer PlayerObject)
+		/// <returns>
+		/// A <see cref="OggFile"/>
+		/// </returns>
+		public OggFile GetNextFile()
 		{
-			if (m_Player!=null) { throw new InvalidOperationException("Cannot assign a player when a player is already present. Un-assign the existing player firts"); }
-			m_Player = PlayerObject;
-			if (m_FileHeap.Count>0) { SetState(OggPlaylistStatus.Ready); } else { SetState(OggPlaylistStatus.WaitingForTracks); }
-		}
-		
-		/// <summary>
-		/// Remove and destroy the player object
-		/// </summary>
-		public void UnAssignPlayer()
-		{
-			if (m_Player!=null)
+			if (m_FileHeap==null) { return null; }
+			if (m_FileHeap.Count<=0) { return null; }
+			m_PreviousFile = m_CurrentFile;
+			if (m_AutoUncache) { if (m_PreviousFile!=null) { m_PreviousFile.UnCacheFile(); } }
+			if (m_Random)
 			{
-				m_Player.Playback_Stop();		// Stop playing if we are, don't do anything if we aren't
-				m_Player = null;
-				SetState(OggPlaylistStatus.WaitingForPlayer);
+				m_Position = m_RandomGenerator.Next(m_FileHeap.Count-1);	
 			}
+			else
+			{
+				m_Position++;
+				if (m_Position >= m_FileHeap.Count)
+				{
+					if (m_Repeat) { m_Position = 0; } else { return null; }
+				}
+			}
+			m_CurrentFile = (OggPlaylistFile)m_FileHeap[m_Position];
+			m_CurrentFile.Played = true;
+			if (!m_CurrentFile.Cached) { m_CurrentFile.CacheFile(); }
+			return m_CurrentFile.File;
 		}
 		
-		
-		private void SetState(OggPlaylistStatus NewState)
+		public OggFile GetPrevFile()
 		{
-			m_PlaylistState = NewState;
-			if (PlaylistStateChanged!=null) { PlaylistStateChanged(this, new EventArgs()); }
+			if (m_FileHeap==null) { return null; }
+			if (m_FileHeap.Count<=0) { return null; }
+			if (m_PreviousFile==null) { return null; }
+			OggPlaylistFile tmp = m_CurrentFile;
+			m_CurrentFile = m_PreviousFile;
+			m_PreviousFile = tmp;
+			if (m_AutoUncache) { if (m_PreviousFile!=null) { m_PreviousFile.UnCacheFile(); } }
+			m_Position = m_FileHeap.IndexOf(m_CurrentFile);
+			if (!m_CurrentFile.Cached) { m_CurrentFile.CacheFile(); }
+			return m_CurrentFile.File;
 		}
 	}
 	

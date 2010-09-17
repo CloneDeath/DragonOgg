@@ -180,7 +180,8 @@ namespace DragonOgg
 		/// How much of the file has been played as a fraction of it's total (always returns between 0 & 1)
 		/// </summary>
 		public float FractionPlayed { 
-			get { 
+			get {
+				if (m_CurrentFile==null) { return 0; }
 				float FE = m_PlayingOffset/float.Parse(m_CurrentFile.GetQuickTag(OggTags.Length)); 
 				if (FE>1) { return 1; } else if (FE<0) { return 0; } else { return FE; } 
 			} 
@@ -196,6 +197,7 @@ namespace DragonOgg
 		/// </summary>
 		public float FractionBuffered { 
 			get { 
+				if (m_CurrentFile==null) { return 0; }
 				float FE = m_BufferOffset/float.Parse(m_CurrentFile.GetQuickTag(OggTags.Length)); 
 				if (FE>1) { return 1; } else if (FE<0) { return 0; } else { return FE; } 
 			} 

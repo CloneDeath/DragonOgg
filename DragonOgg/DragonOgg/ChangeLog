@@ -1,3 +1,14 @@
+2010-09-17  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* OggPlayer.cs: Added some protection against
+	  NullReferenceExceptions when trying to get
+	  FractionPlayed/FractionBuffered when the player has no file.
+
+	* OggPlaylist.cs: Massively simplified the playlist system
+
+	* OggPlayerVBN.cs: Bugfix: Solved NullReferenceException
+	  during player shutdown
+
 2010-07-30  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
 	* OggFile.cs: Added error handling for in case of odd return
