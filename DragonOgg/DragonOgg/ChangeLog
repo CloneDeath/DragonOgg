@@ -1,3 +1,8 @@
+2010-10-28  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* OggPlayerVBN.cs: Added PlayerState of Buffering to allowed
+	  states for some commands
+
 2010-09-17  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
 	* OggPlayer.cs: Tidied up whitespace

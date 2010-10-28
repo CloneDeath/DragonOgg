@@ -346,7 +346,7 @@ namespace DragonOgg
 		
 		public override OggPlayerCommandReturn Playback_Seek(float SeekTime)
 		{
-			if (!(m_PlayerState==OggPlayerStatus.Playing)||(m_PlayerState==OggPlayerStatus.Paused)) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
+			if (!(m_PlayerState==OggPlayerStatus.Playing)||(m_PlayerState==OggPlayerStatus.Paused)||(m_PlayerState==OggPlayerStatus.Buffering)) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
 			
 			// Validate that the requested time is viable
 			if (SeekTime>this.FileLengthTime) { return OggPlayerCommandReturn.ValueOutOfRange; }
@@ -396,7 +396,7 @@ namespace DragonOgg
 		public override OggPlayerCommandReturn Playback_Stop() { return Playback_Stop(false); }
 		private OggPlayerCommandReturn Playback_Stop(bool Internal)
 		{
-			if (!(m_PlayerState==OggPlayerStatus.Playing)||(m_PlayerState==OggPlayerStatus.Paused)) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
+			if (!(m_PlayerState==OggPlayerStatus.Playing)||(m_PlayerState==OggPlayerStatus.Paused)||(m_PlayerState==OggPlayerStatus.Buffering)) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
 			// Request stop
 			m_StopRequested = true;
 			// Wait a sensible time for the threads to enact this
@@ -433,7 +433,7 @@ namespace DragonOgg
 		
 		public override OggPlayerCommandReturn Playback_Pause()
 		{
-			if (m_PlayerState!=OggPlayerStatus.Playing) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
+			if (m_PlayerState!=OggPlayerStatus.Playing && m_PlayerState!=OggPlayerStatus.Buffering) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
 			// Pause the source
 			AL.SourcePause(m_Source);
 			// Send pause requests to threads
