@@ -59,6 +59,10 @@ namespace DragonOgg
 		private bool m_StopRequested;
 		private bool m_ReachedEOF;
 		
+		// Internal threads
+		private Thread PlayThread;
+		private Thread BufferThread;
+		
 		/// <summary>
 		/// Setting to false allows the buffer to continue to build (up to MaxTotalBufferSize) while playback is paused
 		/// Default is true (pausing playback also pauses the buffering)
@@ -173,7 +177,7 @@ namespace DragonOgg
 		/// <summary>
 		/// Buffering process
 		/// </summary>
-		private void BufferThread()
+		private void BufferThreadle()
 		{
 			bool Running = true;
 			while (Running)
@@ -251,7 +255,7 @@ namespace DragonOgg
 				int QueuedBuffers;
 				AL.GetSource(m_Source, ALGetSourcei.BuffersQueued, out QueuedBuffers);
 				// Check for underruns/playback complete
-				// We're using -two- 'cos it doesn't seem to handle the last buffer properly (and the last 2 one windows systems
+				// We're using -two- 'cos it doesn't seem to handle the last buffer properly (and the last 2 on windows systems
 				// (not sure why yet - need to do some investigatling). This shouldn't cause any problems unless a large Buffer_Size is set
 				// Anyway: Fear the evil magic hack 'cos this should really be if (QueuedBuffers<=0)
 				if (QueuedBuffers<=2)
@@ -267,6 +271,7 @@ namespace DragonOgg
 					else
 					{
 						SendMessage(OggPlayerMessageType.BufferUnderrun);
+						if (!BufferThread.IsAlive) { BufferThread.Start(); }
 						Thread.Sleep(m_PrebufferDelay);
 					}
 					continue;
@@ -297,11 +302,12 @@ namespace DragonOgg
 							if (m_BufferRefs.Count>0) 
 							{
 								uint BufferRef = (uint) m_BufferRefs.Dequeue();
+								if (!AL.IsBuffer(BufferRef)) { SendMessage(OggPlayerMessageType.BufferAnomaly); }
 								AL.DeleteBuffer(ref BufferRef);
 							}
 							else
 							{
-								SendMessage(OggPlayerMessageType.BufferAnomaly);
+								SendMessage(OggPlayerMessageType.BufferHeapAnomaly);
 							}
 							// Update the internal quantity tracking
 							m_BufferedSizeHeap.Pop();
@@ -329,17 +335,22 @@ namespace DragonOgg
 			if (m_CurrentFile==null) { return OggPlayerCommandReturn.NoFile; }
 			if (m_PlayerState!=OggPlayerStatus.Stopped) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
 			
+			PlayThread = null;
+			BufferThread = null;
+			
 			// Reset internal variables
 			ResetPlayerCondition();
 			
 			// Start buffering
 			StateChange(OggPlayerStatus.Buffering, OggPlayerStateChanger.UserRequest);
-			new Thread(new ThreadStart(BufferThread)).Start();
+			BufferThread = new Thread(new ThreadStart(BufferThreadle));
+			BufferThread.Start();
 			// Wait for a little bit
 			Thread.Sleep(m_PrebufferDelay);
 			// Start playing
 			StateChange(OggPlayerStatus.Playing, OggPlayerStateChanger.UserRequest);
-			new Thread(new ThreadStart(PlaybackThread)).Start();
+			PlayThread = new Thread(new ThreadStart(PlaybackThread));
+			PlayThread.Start();
 			
 			return OggPlayerCommandReturn.Success;
 		}
@@ -355,6 +366,8 @@ namespace DragonOgg
 			// Put the playback & buffer threads on standby for now
 			m_SeekRequested = true;
 			m_BufferSeekRequested = true;
+			// Wait for the threads to loop & stop
+			Thread.Sleep(PrebufferDelay);
 			// Stop the source	
 			lock (OALLocker) { if (AL.GetSourceState(m_Source)!=ALSourceState.Stopped) { AL.SourceStop(m_Source); } }
 			// Change state to reflect seeking
@@ -371,15 +384,18 @@ namespace DragonOgg
 			// Unpause the buffer thread
 			m_BufferSeekRequested = false;
 			// Restart the buffer thread if it's already shut down due to EOF
-			if (m_ReachedEOF)
+			if (m_ReachedEOF||!BufferThread.IsAlive)
 			{
 				m_ReachedEOF = false;
-				new Thread(new ThreadStart(BufferThread)).Start();
+				BufferThread = new Thread(new ThreadStart(BufferThreadle));
+				BufferThread.Start();
 			}
 			// Wait for the pre-buffer delay to elapse
 			Thread.Sleep(m_PrebufferDelay);
 			// Unpause the player thread
 			m_SeekRequested = false;
+			// Jump out here if somethings gone wrong
+			if (m_PlayerState==OggPlayerStatus.Error) { return OggPlayerCommandReturn.Error; }
 			// Change state to reflect seek done
 			if (!m_PauseRequested) 
 			{ 

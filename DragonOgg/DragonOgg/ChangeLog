@@ -1,3 +1,15 @@
+2010-11-02  El Dragon  <thedragon@the-dragons-nest.co.uk>
+
+	* OggPlayerVBN.cs: Added thread tracking by objects. Tweaked
+	  player code to be more tolerant of weird buffer states.
+	  Changed entry of seek function to ensure tidy pausing of
+	  playback & buffer threads.
+	Changed end of seek function to properly set player state on
+	  exit.
+
+	* MiscStuff.cs: Added BufferHeapAnomaly message type to
+	  OggPlayerMessage type & updated relevant GetEnumString
+
 2010-10-28  El Dragon  <thedragon@the-dragons-nest.co.uk>
 
 	* OggPlayerVBN.cs: Added PlayerState of Buffering to allowed
