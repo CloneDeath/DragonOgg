@@ -37,54 +37,51 @@ namespace csvorbis
 {
 	public class VorbisFile : IDisposable 
 	{
-		static int CHUNKSIZE=8500;
-		static int SEEK_SET=0;
-		static int SEEK_CUR=1;
-		static int SEEK_END=2;
+		public static int CHUNKSIZE=8500;
+		public static int SEEK_SET=0;
+		public static int SEEK_CUR=1;
+		public static int SEEK_END=2;
 
-		static int OV_FALSE=-1;
-		static int OV_EOF=-2;
-		static int OV_HOLE=-3;
+		public static int OV_FALSE=-1;
+		public static int OV_EOF=-2;
+		public static int OV_HOLE=-3;
 
-		static int OV_EREAD=-128;
-		static int OV_EFAULT=-129;
-		static int OV_EIMPL=-130;
-		static int OV_EINVAL=-131;
-		static int OV_ENOTVORBIS=-132;
-		static int OV_EBADHEADER=-133;
-		static int OV_EVERSION=-134;
-		static int OV_ENOTAUDIO=-135;
-		static int OV_EBADPACKET=-136;
-		static int OV_EBADLINK=-137;
-		static int OV_ENOSEEK=-138;
+		public static int OV_EREAD=-128;
+		public static int OV_EFAULT=-129;
+		public static int OV_EIMPL=-130;
+		public static int OV_EINVAL=-131;
+		public static int OV_ENOTVORBIS=-132;
+		public static int OV_EBADHEADER=-133;
+		public static int OV_EVERSION=-134;
+		public static int OV_ENOTAUDIO=-135;
+		public static int OV_EBADPACKET=-136;
+		public static int OV_EBADLINK=-137;
+		public static int OV_ENOSEEK=-138;
 
-		FileStream datasource;
-		bool skable=false;
-		long offset;
-		long end;
-  
-		SyncState oy=new SyncState();
+		//FileStream datasource;
+        public Stream datasource;
+        public bool skable = false;
+        public long offset;
+        public long end;
 
-		int links;
-		long[] offsets;
-		long[] dataoffsets;
-		int[] serialnos;
-		long[] pcmlengths;
-		Info[] vi;
-		Comment[] vc;
+        public SyncState oy = new SyncState();
+
+        public int links;
+        public long[] offsets;
+        public long[] dataoffsets;
+        public int[] serialnos;
+        public long[] pcmlengths;
+        public Info[] vi;
+        public Comment[] vc;
 
 		// Decoding working state local storage
-		long pcm_offset;
-		bool decode_ready=false;
-		int current_serialno;
-		int current_link;
 
-		float bittrack;
-		float samptrack;
+        public float bittrack;
+        public float samptrack;
 
-		StreamState os;
-		DspState vd;
-		Block vb;
+        public StreamState os;
+        public DspState vd;
+        public Block vb;
 
 
 		private VorbisFile()
@@ -112,12 +109,18 @@ namespace csvorbis
 			}
 		}
 
-		public VorbisFile(FileStream inst, byte[] initial, int ibytes) : this()
+        public VorbisFile(Stream inst)
+            : this()
+        {
+            int ret = open(inst, null, 0);
+        }
+
+		public VorbisFile(Stream inst, byte[] initial, int ibytes) : this()
 		{
 			int ret=open(inst, initial, ibytes);
 		}
 
-		private int get_data()
+		public int get_data()
 		{
 			int index=oy.buffer(CHUNKSIZE);
 			byte[] buffer=oy.data;
@@ -140,7 +143,7 @@ namespace csvorbis
 			return bytes;
 		}
 
-		private void seek_helper(long offst)
+		public void seek_helper(long offst)
 		{
 			//callbacks.seek_func(datasource, offst, SEEK_SET);
 			fseek(datasource, offst, SEEK_SET);
@@ -148,7 +151,7 @@ namespace csvorbis
 			oy.reset();
 		}
 
-		private int get_next_page(Page page, long boundary)
+		public int get_next_page(Page page, long boundary)
 		{
 			if(boundary>0) boundary+=offset;
 			while(true)
@@ -207,7 +210,7 @@ namespace csvorbis
 			return offst;
 		}
 
-		int bisect_forward_serialno(long begin, long searched, long end, int currentno, int m)
+		public int bisect_forward_serialno(long begin, long searched, long end, int currentno, int m)
 		{
 			long endsearched=end;
 			long next=end;
@@ -260,7 +263,7 @@ namespace csvorbis
 
 		// uses the local ogg_stream storage in vf; this is important for
 		// non-streaming input sources
-		int fetch_headers(Info vi, Comment vc, int[] serialno, Page og_ptr)
+		public int fetch_headers(Info vi, Comment vc, int[] serialno, Page og_ptr)
 		{
 			//System.err.println("fetch_headers");
 			Page og=new Page();
@@ -331,7 +334,7 @@ namespace csvorbis
 		// vorbis_info structs and PCM positions.  Only called by the seekable
 		// initialization (local stream storage is hacked slightly; pay
 		// attention to how that's done)
-		void prefetch_all_headers(Info first_i,Comment first_c, int dataoffset)
+		public void prefetch_all_headers(Info first_i,Comment first_c, int dataoffset)
 		{
 			Page og=new Page();
 			int ret;
@@ -398,19 +401,6 @@ namespace csvorbis
 			}
 		}
 
-		int make_decode_ready()
-		{
-#if NET_2_1
-			if(decode_ready) throw new Exception ("make_decode_ready: 1");
-#else
-			if(decode_ready)Environment.Exit(1);
-#endif
-			vd.synthesis_init(vi[0]);
-			vb.init(vd);
-			decode_ready=true;
-			return(0);
-		}
-
 		int open_seekable()
 		{
 			Info initial_i=new Info();
@@ -458,10 +448,23 @@ namespace csvorbis
 				}
 			}
 			prefetch_all_headers(initial_i, initial_c, dataoffset);
-			return(raw_seek(0));
+			//return(raw_seek(0));
+            return 0;
 		}
 
-		int open_nonseekable()
+        public VorbisFileInstance makeInstance()
+        {
+            VorbisFileInstance instance = new VorbisFileInstance();
+            instance.vorbisFile = this;
+
+            instance.raw_seek(0);
+
+            return instance;
+        }
+
+        // CWL: This doesn't appear to be needed for most applications.  It
+        // complicates having multiple instances, and so was removed.
+		/*int open_nonseekable()
 		{
 			//System.err.println("open_nonseekable");
 			// we cannot seek. Set up a 'single' (current) logical bitstream entry
@@ -475,162 +478,7 @@ namespace csvorbis
 			current_serialno=foo[0];
 			make_decode_ready();
 			return 0;
-		}
-
-		// clear out the current logical bitstream decoder
-		void decode_clear()
-		{
-			os.clear();
-			vd.clear();
-			vb.clear();
-			decode_ready=false;
-			bittrack=0.0f;
-			samptrack=0.0f;
-		}
-
-		// fetch and process a packet.  Handles the case where we're at a
-		// bitstream boundary and dumps the decoding machine.  If the decoding
-		// machine is unloaded, it loads it.  It also keeps pcm_offset up to
-		// date (seek and read both use this.  seek uses a special hack with
-		// readp). 
-		//
-		// return: -1) hole in the data (lost packet) 
-		//          0) need more date (only if readp==0)/eof
-		//          1) got a packet 
-
-		int process_packet(int readp)
-		{
-			Page og=new Page();
-
-			// handle one packet.  Try to fetch it from current stream state
-			// extract packets from page
-			while(true)
-			{
-				// process a packet if we can.  If the machine isn't loaded,
-				// neither is a page
-				if(decode_ready)
-				{
-					Packet op=new Packet();
-					int result=os.packetout(op);
-					long granulepos;
-					// if(result==-1)return(-1); // hole in the data. For now, swallow
-					// and go. We'll need to add a real
-					// error code in a bit.
-					if(result>0)
-					{
-						// got a packet.  process it
-						granulepos=op.granulepos;
-						if(vb.synthesis(op)==0)
-						{ // lazy check for lazy
-							// header handling.  The
-							// header packets aren't
-							// audio, so if/when we
-							// submit them,
-							// vorbis_synthesis will
-							// reject them
-							// suck in the synthesis data and track bitrate
-						{
-							int oldsamples=vd.synthesis_pcmout(null, null);
-							vd.synthesis_blockin(vb);
-							samptrack+=vd.synthesis_pcmout(null, null)-oldsamples;
-							bittrack+=op.bytes*8;
-						}
-	  
-							// update the pcm offset.
-							if(granulepos!=-1 && op.e_o_s==0)
-							{
-								int link=(skable?current_link:0);
-								int samples;
-								// this packet has a pcm_offset on it (the last packet
-								// completed on a page carries the offset) After processing
-								// (above), we know the pcm position of the *last* sample
-								// ready to be returned. Find the offset of the *first*
-								// 
-								// As an aside, this trick is inaccurate if we begin
-								// reading anew right at the last page; the end-of-stream
-								// granulepos declares the last frame in the stream, and the
-								// last packet of the last page may be a partial frame.
-								// So, we need a previous granulepos from an in-sequence page
-								// to have a reference point.  Thus the !op.e_o_s clause above
-	    
-								samples=vd.synthesis_pcmout(null, null);
-								granulepos-=samples;
-								for(int i=0;i<link;i++)
-								{
-									granulepos+=pcmlengths[i];
-								}
-								pcm_offset=granulepos;
-							}
-							return(1);
-						}
-					}
-				}
-
-				if(readp==0)return(0);
-				if(get_next_page(og,-1)<0)return(0); // eof. leave unitialized
-
-				// bitrate tracking; add the header's bytes here, the body bytes
-				// are done by packet above
-				bittrack+=og.header_len*8;
-
-				// has our decoding just traversed a bitstream boundary?
-				if(decode_ready)
-				{
-					if(current_serialno!=og.serialno())
-					{
-						decode_clear();
-					}
-				}
-
-				// Do we need to load a new machine before submitting the page?
-				// This is different in the seekable and non-seekable cases.  
-				// 
-				// In the seekable case, we already have all the header
-				// information loaded and cached; we just initialize the machine
-				// with it and continue on our merry way.
-				// 
-				// In the non-seekable (streaming) case, we'll only be at a
-				// boundary if we just left the previous logical bitstream and
-				// we're now nominally at the header of the next bitstream
-
-				if(!decode_ready)
-				{
-					int i;
-					if(skable)
-					{
-						current_serialno=og.serialno();
-	
-						// match the serialno to bitstream section.  We use this rather than
-						// offset positions to avoid problems near logical bitstream
-						// boundaries
-						for(i=0;i<links;i++)
-						{
-							if(serialnos[i]==current_serialno)break;
-						}
-						if(i==links)return(-1); // sign of a bogus stream.  error out,
-						// leave machine uninitialized
-						current_link=i;
-
-						os.init(current_serialno);
-						os.reset(); 
-
-					}
-					else
-					{
-						// we're streaming
-						// fetch the three header packets, build the info struct
-						int[] foo = new int[1];
-						int ret=fetch_headers(vi[0], vc[0], foo, og);
-						current_serialno=foo[0];
-						if(ret!=0)return ret;
-						current_link++;
-						i=0;
-					}
-					make_decode_ready();
-				}
-				os.pagein(og);
-			}
-		}
+		}*/
 
 		//The helpers are over; it's all toplevel interface from here on out
 		// clear out the OggVorbis_File struct
@@ -660,7 +508,7 @@ namespace csvorbis
 			return(0);
 		}
 
-		static int fseek(FileStream fis,
+		public static int fseek(Stream fis,
 			//int64_t off,
 			long off,
 			int whence)
@@ -701,7 +549,7 @@ namespace csvorbis
 			return 0;
 		}
 
-		static long ftell(FileStream fis)
+		static long ftell(Stream fis)
 		{
 			try
 			{
@@ -724,12 +572,12 @@ namespace csvorbis
 		// return: -1) error
 		//          0) OK
 
-		int open(FileStream iis, byte[] initial, int ibytes)
+		int open(Stream iis, byte[] initial, int ibytes)
 		{
 			return open_callbacks(iis, initial, ibytes);
 		}
 
-		int open_callbacks(FileStream iis, byte[] initial, int ibytes)
+		int open_callbacks(Stream iis, byte[] initial, int ibytes)
 		{
 			int ret;
 			datasource=iis;
@@ -748,8 +596,16 @@ namespace csvorbis
 				oy.wrote(ibytes);
 			}
 			// can we seek? Stevens suggests the seek test was portable
-			if(iis.CanSeek == true){ ret=open_seekable(); }
-			else{ ret=open_nonseekable(); }
+			if(iis.CanSeek == true)
+            { 
+                ret=open_seekable(); 
+            }
+			else
+            {
+                // CWL: Disabled since they're no longer used
+                throw new NotImplementedException("Non-seekable streams are not implemented");
+                //ret=open_nonseekable(); 
+            }
 			if(ret!=0)
 			{
 				datasource=null;
@@ -825,32 +681,6 @@ namespace csvorbis
 			}
 		}
 
-		// returns the actual bitrate since last call.  returns -1 if no
-		// additional data to offer since last call (or at beginning of stream)
-		public int bitrate_instant()
-		{
-			int _link=(skable?current_link:0);
-			if(samptrack==0)return(-1);
-			int ret=(int)(bittrack/samptrack*vi[_link].rate+.5);
-			bittrack=0.0f;
-			samptrack=0.0f;
-			return(ret);
-		}
-
-		public int serialnumber(int i)
-		{
-			if(i>=links)return(-1);
-			if(!skable && i>=0)return(serialnumber(-1));
-			if(i<0)
-			{
-				return(current_serialno);
-			}
-			else
-			{
-				return(serialnos[i]);
-			}
-		}
-
 		// returns: total raw (compressed) length of content if i==-1
 		//          raw (compressed) length of that logical bitstream for i==0 to n
 		//          -1 if the stream is not seekable (we can't know the length)
@@ -915,244 +745,6 @@ namespace csvorbis
 			}
 		}
 
-		// seek to an offset relative to the *compressed* data. This also
-		// immediately sucks in and decodes pages to update the PCM cursor. It
-		// will cross a logical bitstream boundary, but only if it can't get
-		// any packets out of the tail of the bitstream we seek to (so no
-		// surprises). 
-		// 
-		// returns zero on success, nonzero on failure
-
-		public int raw_seek(int pos)
-		{
-			if(!skable)return(-1); // don't dump machine if we can't seek
-			if(pos<0 || pos>offsets[links])
-			{
-				//goto seek_error;
-				pcm_offset=-1;
-				decode_clear();
-				return -1;
-			}
-
-			// clear out decoding machine state
-			pcm_offset=-1;
-			decode_clear();
-
-			// seek
-			seek_helper(pos);
-
-			// we need to make sure the pcm_offset is set.  We use the
-			// _fetch_packet helper to process one packet with readp set, then
-			// call it until it returns '0' with readp not set (the last packet
-			// from a page has the 'granulepos' field set, and that's how the
-			// helper updates the offset
-
-			switch(process_packet(1))
-			{
-				case 0:
-					// oh, eof. There are no packets remaining.  Set the pcm offset to
-					// the end of file
-					pcm_offset=pcm_total(-1);
-					return(0);
-				case -1:
-					// error! missing data or invalid bitstream structure
-					//goto seek_error;
-					pcm_offset=-1;
-					decode_clear();
-					return -1;
-				default:
-					// all OK
-					break;
-			}
-			while(true)
-			{
-				switch(process_packet(0))
-				{
-					case 0:
-						// the offset is set.  If it's a bogus bitstream with no offset
-						// information, it's not but that's not our fault.  We still run
-						// gracefully, we're just missing the offset
-						return(0);
-					case -1:
-						// error! missing data or invalid bitstream structure
-						//goto seek_error;
-						pcm_offset=-1;
-						decode_clear();
-						return -1;
-					default:
-						// continue processing packets
-						break;
-				}
-			}
-  
-			// seek_error:
-			// dump the machine so we're in a known state
-			//pcm_offset=-1;
-			//decode_clear();
-			return -1;
-		}
-
-		// seek to a sample offset relative to the decompressed pcm stream 
-		// returns zero on success, nonzero on failure
-
-		public int pcm_seek(long pos)
-		{
-			int link=-1;
-			long total=pcm_total(-1);
-
-			if(!skable)return(-1); // don't dump machine if we can't seek
-			if(pos<0 || pos>total)
-			{
-				//goto seek_error;
-				pcm_offset=-1;
-				decode_clear();
-				return -1;
-			}
-
-			// which bitstream section does this pcm offset occur in?
-			for(link=links-1;link>=0;link--)
-			{
-				total-=pcmlengths[link];
-				if(pos>=total)break;
-			}
-
-			// search within the logical bitstream for the page with the highest
-			// pcm_pos preceeding (or equal to) pos.  There is a danger here;
-			// missing pages or incorrect frame number information in the
-			// bitstream could make our task impossible.  Account for that (it
-			// would be an error condition)
-		{
-			long target=pos-total;
-			long end=offsets[link+1];
-			long begin=offsets[link];
-			int best=(int)begin;
-
-			Page og=new Page();
-			while(begin<end)
-			{
-				long bisect;
-				int ret;
-    
-				if(end-begin<CHUNKSIZE)
-				{
-					bisect=begin;
-				}
-				else
-				{
-					bisect=(end+begin)/2;
-				}
-    
-				seek_helper(bisect);
-				ret=get_next_page(og,end-bisect);
-      
-				if(ret==-1)
-				{
-					end=bisect;
-				}
-				else
-				{
-					long granulepos=og.granulepos();
-					if(granulepos<target)
-					{
-						best=ret;  // raw offset of packet with granulepos
-						begin=offset; // raw offset of next packet
-					}
-					else
-					{
-						end=bisect;
-					}
-				}
-			}
-			// found our page. seek to it (call raw_seek).
-			if(raw_seek(best)!=0)
-			{
-				//goto seek_error;
-				pcm_offset=-1;
-				decode_clear();
-				return -1;
-			}
-		}
-
-			// verify result
-			if(pcm_offset>=pos)
-			{
-				//goto seek_error;
-				pcm_offset=-1;
-				decode_clear();
-				return -1;
-			}
-			if(pos>pcm_total(-1))
-			{
-				//goto seek_error;
-				pcm_offset=-1;
-				decode_clear();
-				return -1;
-			}
-
-			// discard samples until we reach the desired position. Crossing a
-			// logical bitstream boundary with abandon is OK.
-			while(pcm_offset<pos)
-			{
-				float[][] pcm;
-				int target=(int)(pos-pcm_offset);
-				float[][][] _pcm=new float[1][][];
-				int[] _index=new int[getInfo(-1).channels];
-				int samples=vd.synthesis_pcmout(_pcm, _index);
-				pcm=_pcm[0];
-
-				if(samples>target)samples=target;
-				vd.synthesis_read(samples);
-				pcm_offset+=samples;
-    
-				if(samples<target)
-					if(process_packet(1)==0)
-					{
-						pcm_offset=pcm_total(-1); // eof
-					}
-			}
-			return 0;
-  
-			// seek_error:
-			// dump machine so we're in a known state
-			//pcm_offset=-1;
-			//decode_clear();
-			//return -1;
-		}
-
-		// seek to a playback time relative to the decompressed pcm stream 
-		// returns zero on success, nonzero on failure
-		public int time_seek(float seconds)
-		{
-			// translate time to PCM position and call pcm_seek
-
-			int link=-1;
-			long pcm_tot=pcm_total(-1);
-			float time_tot=time_total(-1);
-
-			if(!skable)return(-1); // don't dump machine if we can't seek
-			if(seconds<0 || seconds>time_tot)
-			{
-				//goto seek_error;
-				pcm_offset=-1;
-				decode_clear();
-				return -1;
-			}
-  
-			// which bitstream section does this time offset occur in?
-			for(link=links-1;link>=0;link--)
-			{
-				pcm_tot-=pcmlengths[link];
-				time_tot-=time_total(link);
-				if(seconds>=time_tot)break;
-			}
-
-			// enough information to convert time offset to pcm offset
-		{
-			long target=(long)(pcm_tot+(seconds-time_tot)*vi[link].rate);
-			return(pcm_seek(target));
-		}
-		}
-
 		// tell the current stream offset cursor.  Note that seek followed by
 		// tell will likely not give the set offset due to caching
 		public long raw_tell()
@@ -1160,278 +752,10 @@ namespace csvorbis
 			return(offset);
 		}
 
-		// return PCM offset (sample) of next PCM sample to be read
-		public long pcm_tell()
-		{
-			return(pcm_offset);
-		}
-
-		// return time offset (seconds) of next PCM sample to be read
-		public float time_tell()
-		{
-			// translate time to PCM position and call pcm_seek
-
-			int link=-1;
-			long pcm_tot=0;
-			float time_tot=0.0f;
-  
-			if(skable)
-			{
-				pcm_tot=pcm_total(-1);
-				time_tot=time_total(-1);
-  
-				// which bitstream section does this time offset occur in?
-				for(link=links-1;link>=0;link--)
-				{
-					pcm_tot-=pcmlengths[link];
-					time_tot-=time_total(link);
-					if(pcm_offset>=pcm_tot)break;
-				}
-			}
-
-			return((float)time_tot+(float)(pcm_offset-pcm_tot)/vi[link].rate);
-		}
-
-		//  link:   -1) return the vorbis_info struct for the bitstream section
-		//              currently being decoded
-		//         0-n) to request information for a specific bitstream section
-		//
-		// In the case of a non-seekable bitstream, any call returns the
-		// current bitstream.  NULL in the case that the machine is not
-		// initialized
-
-		public Info getInfo(int link)
-		{
-			if(skable)
-			{
-				if(link<0)
-				{
-					if(decode_ready)
-					{
-						return vi[current_link];
-					}
-					else
-					{
-						return null;
-					}
-				}
-				else
-				{
-					if(link>=links)
-					{
-						return null;
-					}
-					else
-					{
-						return vi[link];
-					}
-				}
-			}
-			else
-			{
-				if(decode_ready)
-				{
-					return vi[0];
-				}
-				else
-				{
-					return null;
-				}
-			}
-		}
-
-		public Comment getComment(int link)
-		{
-			if(skable)
-			{
-				if(link<0)
-				{
-					if(decode_ready){ return vc[current_link]; }
-					else{ return null; }
-				}
-				else
-				{
-					if(link>=links){ return null;}
-					else{ return vc[link]; }
-				}
-			}
-			else
-			{
-				if(decode_ready){ return vc[0]; }
-				else{ return null; }
-			}
-		}
-
-		int host_is_big_endian() 
+		public int host_is_big_endian() 
 		{
 			return 0;
 			//the above isn't really right...
-		}
-
-		// up to this point, everything could more or less hide the multiple
-		// logical bitstream nature of chaining from the toplevel application
-		// if the toplevel application didn't particularly care.  However, at
-		// the point that we actually read audio back, the multiple-section
-		// nature must surface: Multiple bitstream sections do not necessarily
-		// have to have the same number of channels or sampling rate.
-		// 
-		// read returns the sequential logical bitstream number currently
-		// being decoded along with the PCM data in order that the toplevel
-		// application can take action on channel/sample rate changes.  This
-		// number will be incremented even for streamed (non-seekable) streams
-		// (for seekable streams, it represents the actual logical bitstream
-		// index within the physical bitstream.  Note that the accessor
-		// functions above are aware of this dichotomy).
-		//
-		// input values: buffer) a buffer to hold packed PCM data for return
-		//               length) the byte length requested to be placed into buffer
-		//               bigendianp) should the data be packed LSB first (0) or
-		//                           MSB first (1)
-		//               word) word size for output.  currently 1 (byte) or 
-		//                     2 (16 bit short)
-		// 
-		// return values: -1) error/hole in data
-		//                 0) EOF
-		//                 n) number of bytes of PCM actually returned.  The
-		//                    below works on a packet-by-packet basis, so the
-		//                    return length is not related to the 'length' passed
-		//                    in, just guaranteed to fit.
-		// 
-		// *section) set to the logical bitstream number
-
-		public int read(byte[] buffer,int length,
-			int bigendianp, int word, int sgned, int[] bitstream)
-		{
-			int host_endian = host_is_big_endian();
-			int index=0;
-
-			while(true)
-			{
-				if(decode_ready)
-				{
-					float[][] pcm;
-					float[][][] _pcm=new float[1][][];
-					int[] _index=new int[getInfo(-1).channels];
-					int samples=vd.synthesis_pcmout(_pcm, _index);
-					pcm=_pcm[0];
-					if(samples!=0)
-					{
-						// yay! proceed to pack data into the byte buffer
-						int channels=getInfo(-1).channels;
-						int bytespersample=word * channels;
-						if(samples>length/bytespersample)samples=length/bytespersample;
-	
-						// a tight loop to pack each size
-					{
-						int val;
-						if(word==1)
-						{
-							int off=(sgned!=0?0:128);
-							for(int j=0;j<samples;j++)
-							{
-								for(int i=0;i<channels;i++)
-								{
-									val=(int)(pcm[i][_index[i]+j]*128.0 + 0.5);
-									if(val>127)val=127;
-									else if(val<-128)val=-128;
-									buffer[index++]=(byte)(val+off);
-								}
-							}
-						}
-						else
-						{
-							int off=(sgned!=0?0:32768);
-
-							if(host_endian==bigendianp)
-							{
-								if(sgned!=0)
-								{
-									for(int i=0;i<channels;i++) 
-									{ // It's faster in this order
-										int src=_index[i];
-										int dest=i*2;
-										for(int j=0;j<samples;j++) 
-										{
-											val=(int)(pcm[i][src+j]*32767.0);
-											if(val>32767)val=32767;
-											else if(val<-32768)val=-32768;
-											buffer[dest]=(byte)(val);
-											buffer[dest+1]=(byte)((uint)val >> 8);
-											dest+=bytespersample;
-										}
-									}
-								}
-								else
-								{
-									for(int i=0;i<channels;i++) 
-									{
-										float[] src=pcm[i];
-										int dest=i;
-										for(int j=0;j<samples;j++) 
-										{
-											val=(int)(src[j]*32768.0 + 0.5);
-											if(val>32767)val=32767;
-											else if(val<-32768)val=-32768;
-											buffer[dest]=(byte)((uint)(val+off) >> 8);
-											buffer[dest+1]=(byte)(val+off);
-											dest+=channels*2;
-										}
-									}
-								}
-							}
-							else if(bigendianp!=0)
-							{
-								for(int j=0;j<samples;j++)
-								{
-									for(int i=0;i<channels;i++)
-									{
-										val=(int)(pcm[i][j]*32768.0 + 0.5);
-										if(val>32767)val=32767;
-										else if(val<-32768)val=-32768;
-										val+=off;
-										buffer[index++]=(byte)((uint)val >> 8);
-										buffer[index++]=(byte)val;
-									}
-								}
-							}
-							else
-							{
-								//int val;
-								for(int j=0;j<samples;j++)
-								{
-									for(int i=0;i<channels;i++)
-									{
-										val=(int)(pcm[i][j]*32768.0 + 0.5);
-										if(val>32767)val=32767;
-										else if(val<-32768)val=-32768;
-										val+=off;
-										buffer[index++]=(byte)val;
-										buffer[index++]=(byte)((uint)val >> 8);
-									}
-								}
-							}
-						}
-					}
-	
-						vd.synthesis_read(samples);
-						pcm_offset+=samples;
-						if(bitstream!=null)bitstream[0]=current_link;
-						return(samples*bytespersample);
-					}
-				}
-
-				// suck in another packet
-				switch(process_packet(1))
-				{
-					case 0:
-						return(0);
-					case -1:
-						return -1;
-					default:
-						break;
-				}
-			}
-			return -1;
 		}
 
 		public Info[] getInfo(){return vi;}

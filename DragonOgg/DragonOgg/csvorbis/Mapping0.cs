@@ -23,6 +23,8 @@
  */
 
 using System;
+using System.Diagnostics;
+
 using csogg;
 
 namespace csvorbis 
@@ -223,6 +225,10 @@ namespace csvorbis
 
 		override public int inverse(Block vb, Object l)
 		{
+#if DEBUG
+            Debug.Assert(l != null);
+#endif
+
 			lock(this)
 			{
 				//System.err.println("Mapping0.inverse");
@@ -434,7 +440,7 @@ namespace csvorbis
 		}
 	}
 
-	class LookMapping0
+	public class LookMapping0
 	{
 		internal InfoMode mode;
 		internal InfoMapping0 map;

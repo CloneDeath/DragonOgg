@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>DragonOgg</RootNamespace>
     <AssemblyName>DragonOgg</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <ReleaseVersion>0.6</ReleaseVersion>
     <SynchReleaseVersion>false</SynchReleaseVersion>
     <FileUpgradeFlags>
@@ -17,6 +17,7 @@
     <UpgradeBackupLocation>
     </UpgradeBackupLocation>
     <OldToolsVersion>3.5</OldToolsVersion>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -47,9 +48,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
-    <Compile Include="OggFile.cs" />
-    <Compile Include="OggPlayer.cs" />
-    <Compile Include="OggPlaylist.cs" />
+    <Compile Include="csvorbis\VorbisFileInstance.cs" />
+    <Compile Include="Interactive\AudioChannel.cs" />
+    <Compile Include="Interactive\AudioClip.cs" />
+    <Compile Include="Interactive\AudioManager.cs" />
+    <Compile Include="MediaPlayer\OggFile.cs" />
+    <Compile Include="MediaPlayer\OggPlayer.cs" />
+    <Compile Include="MediaPlayer\OggPlaylist.cs" />
     <Compile Include="csogg\Buffer.cs" />
     <Compile Include="csogg\Packet.cs" />
     <Compile Include="csogg\Page.cs" />
@@ -216,11 +221,11 @@
     <Compile Include="TagLibSharp\ListBase.cs" />
     <Compile Include="TagLibSharp\FileTypes.cs" />
     <Compile Include="TagLibSharp\CorruptFileException.cs" />
-    <Compile Include="MiscStuff.cs" />
-    <Compile Include="OggPlaylistWriter.cs" />
-    <Compile Include="OggPlayerFBN.cs" />
-    <Compile Include="OggPlayerVBN.cs" />
-    <Compile Include="Queues.cs" />
+    <Compile Include="MediaPlayer\MiscStuff.cs" />
+    <Compile Include="MediaPlayer\OggPlaylistWriter.cs" />
+    <Compile Include="MediaPlayer\OggPlayerFBN.cs" />
+    <Compile Include="MediaPlayer\OggPlayerVBN.cs" />
+    <Compile Include="MediaPlayer\Queues.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup />
