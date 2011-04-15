@@ -140,6 +140,7 @@ namespace DragonOgg
 
 				// Begin buffering
 				StateChange(OggPlayerStatus.Buffering, OggPlayerStateChanger.UserRequest);
+                int usedBuffers = 0;
 
 				// Create & Populate buffers
 				for (int i=0;i<m_Buffers.Length;i++)
@@ -152,17 +153,23 @@ namespace DragonOgg
 							AL.GenBuffer(out m_Buffers[i]);
 							// Fill this buffer
 							AL.BufferData((int)m_Buffers[i], m_CurrentFile.Format, obs.Buffer, obs.ReturnValue, obs.RateHz);
+                            usedBuffers++;
 						}
-						else 
-						{
-							throw new Exception("Read error or EOF within initial buffer segment");
-						}
+                        else if (obs.ReturnValue == 0)
+                        {
+                            // Probably a small file and we're at the end of it
+                            break;
+                        }
+                        else
+                        {
+                            throw new Exception("Read error or EOF within initial buffer segment");
+                        }
 					}
 				}
 				lock (OALLocker)
 				{
 					// We've filled four buffers with data, give 'em to the source
-					AL.SourceQueueBuffers(m_Source, m_Buffers.Length, m_Buffers);
+                   AL.SourceQueueBuffers(m_Source, usedBuffers, m_Buffers);
 					// Start playback
 					AL.SourcePlay(m_Source);
 				}
