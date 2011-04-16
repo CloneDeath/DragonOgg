@@ -39,7 +39,14 @@ namespace InteractivePlayerExample
     /// 
     /// This samples a short guitar rift and also a "boing" sound effect in the
     /// background.  It ends by playing several overlapping "boing"s.
+    /// 
+    /// The Thread.Sleep() calls wouldn't be required in most programs if the
+    /// sounds are being played in response to something (such as collision
+    /// events, button presses, etc).  Here, they're used simply to add delays
+    /// between calls to Play(), otherwise the program would attempt to play 
+    /// all sounds at the same time.
     /// </summary>
+    /// 
     class InteractivePlayer
     {
         static void Main(string[] args)
@@ -61,23 +68,29 @@ namespace InteractivePlayerExample
             // threading, construct your own AudioManager.
             guitarClip.Play();
 
-            for(int i = 0; i < 7; i++)
-            {
-                if (i % 2 == 0)
-                {
-                    boingClip.Play();
-                }
+            // Play the "boing" clip every 2 seconds during the guitar clip
+            boingClip.Play();
+            Thread.Sleep(2000);
 
-                Thread.Sleep(1024);
-            }
+            boingClip.Play();
+            Thread.Sleep(2000);
+
+            boingClip.Play();
+            Thread.Sleep(2000);
 
             // Finally play some overlapping sounds to demonstrate a sound can
             // have more than one instance played at a time.
-            for (int i = 0; i < 4; i++)
-            {
-                boingClip.Play();
-                Thread.Sleep(200);
-            }
+            boingClip.Play();
+            Thread.Sleep(200);
+
+            boingClip.Play();
+            Thread.Sleep(200);
+
+            boingClip.Play();
+            Thread.Sleep(200);
+
+            boingClip.Play();
+            Thread.Sleep(200);
 
             // Give the last "boing" time to finish
             Thread.Sleep(800);
