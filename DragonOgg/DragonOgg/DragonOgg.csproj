@@ -42,7 +42,7 @@
   <ItemGroup>
     <Reference Include="OpenTK, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\OpenTK\Binaries\OpenTK\Release\OpenTK.dll</HintPath>
+      <HintPath>.\OpenTK.dll</HintPath>
     </Reference>
     <Reference Include="System" />
   </ItemGroup>
@@ -228,7 +228,11 @@
     <Compile Include="MediaPlayer\Queues.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <ItemGroup />
+  <ItemGroup>
+    <Content Include="OpenTK.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>
       <Properties>
@@ -240,6 +244,9 @@
     </MonoDevelop>
   </ProjectExtensions>
   <ItemGroup>
+    <None Include="OpenTK.dll.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TagLibSharp\TagLib.sources" />
     <None Include="..\DragonOgg-README" />
     <None Include="LGPL">
