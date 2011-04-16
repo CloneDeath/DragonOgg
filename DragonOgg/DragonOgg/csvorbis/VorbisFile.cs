@@ -22,6 +22,9 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+// Caleb Leak: Many changes.  Pushed as many state variables as I could recognize into VorbisFileInstance so that multiple instances can be
+// instantiated without the overhead of extra streams, copies of the headers, etc.  Check the DragonOgg svn repository to revert.
+
 // Alteration of FileShare mode on line 97 by Matthew Harris for use as part of the DragonOgg library. Remove the following to revert:
 // , FileShare.ReadWrite
 // Be aware that this does introduce potential difficulties with the file being written between writing operations, but is needed to allow
@@ -64,8 +67,6 @@ namespace csvorbis
         public long offset;
         public long end;
 
-        public SyncState oy = new SyncState();
-
         public int links;
         public long[] offsets;
         public long[] dataoffsets;
@@ -76,21 +77,9 @@ namespace csvorbis
 
 		// Decoding working state local storage
 
-        public float bittrack;
-        public float samptrack;
-
-        public StreamState os;
-        public DspState vd;
-        public Block vb;
-
 
 		private VorbisFile()
 		{
-			os=new StreamState(); // take physical pages, weld into a logical
-			// stream of packets
-			vd=new DspState(); // central working state for 
-			// the packet->PCM decoder
-			vb=new Block(vd);     // local working space for packet->PCM decode
 		}
 
 		public VorbisFile(String file) : this()
@@ -120,10 +109,10 @@ namespace csvorbis
 			int ret=open(inst, initial, ibytes);
 		}
 
-		public int get_data()
+		public int get_data(VorbisFileInstance instance)
 		{
-			int index=oy.buffer(CHUNKSIZE);
-			byte[] buffer=oy.data;
+			int index=instance.oy.buffer(CHUNKSIZE);
+            byte[] buffer = instance.oy.data;
 			//  int bytes=callbacks.read_func(buffer, index, 1, CHUNKSIZE, datasource);
 			int bytes=0;
 			try
@@ -135,7 +124,7 @@ namespace csvorbis
 				Console.Error.WriteLine(e.Message);
 				return OV_EREAD;
 			}
-			oy.wrote(bytes);
+            instance.oy.wrote(bytes);
 			if(bytes==-1)
 			{
 				bytes=0;
@@ -143,22 +132,22 @@ namespace csvorbis
 			return bytes;
 		}
 
-		public void seek_helper(long offst)
+		public void seek_helper(long offst, VorbisFileInstance instance)
 		{
 			//callbacks.seek_func(datasource, offst, SEEK_SET);
 			fseek(datasource, offst, SEEK_SET);
 			this.offset=offst;
-			oy.reset();
+			instance.oy.reset();
 		}
 
-		public int get_next_page(Page page, long boundary)
+		public int get_next_page(Page page, long boundary, VorbisFileInstance instance)
 		{
 			if(boundary>0) boundary+=offset;
 			while(true)
 			{
 				int more;
 				if(boundary>0 && offset>=boundary)return OV_FALSE;
-				more=oy.pageseek(page);
+                more = instance.oy.pageseek(page);
 				if(more<0){offset-=more;}
 				else
 				{
@@ -166,7 +155,7 @@ namespace csvorbis
 					{
 						if(boundary==0)return OV_FALSE;
 						//	  if(get_data()<=0)return -1;
-						int ret=get_data();
+						int ret=get_data(instance);
 						if(ret==0) return OV_EOF;
 						if(ret<0) return OV_EREAD; 
 					}
@@ -180,7 +169,7 @@ namespace csvorbis
 			}
 		}
 
-		private int get_prev_page(Page page)
+        private int get_prev_page(Page page, VorbisFileInstance instance)
 		{
 			long begin=offset; //!!!
 			int ret;
@@ -190,17 +179,17 @@ namespace csvorbis
 				begin-=CHUNKSIZE;
 				if(begin<0)
 					begin=0;
-				seek_helper(begin);
+				seek_helper(begin, instance);
 				while(offset<begin+CHUNKSIZE)
 				{
-					ret=get_next_page(page, begin+CHUNKSIZE-offset);
+					ret=get_next_page(page, begin+CHUNKSIZE-offset, instance);
 					if(ret==OV_EREAD){ return OV_EREAD; }
 					if(ret<0){ break; }
 					else{ offst=ret; }
 				}
 			}
-			seek_helper(offst); //!!!
-			ret=get_next_page(page, CHUNKSIZE);
+            seek_helper(offst, instance); //!!!
+			ret=get_next_page(page, CHUNKSIZE, instance);
 			if(ret<0)
 			{
 				//System.err.println("Missed page fencepost at end of logical bitstream Exiting");
@@ -210,7 +199,7 @@ namespace csvorbis
 			return offst;
 		}
 
-		public int bisect_forward_serialno(long begin, long searched, long end, int currentno, int m)
+		public int bisect_forward_serialno(long begin, long searched, long end, int currentno, int m, VorbisFileInstance instance)
 		{
 			long endsearched=end;
 			long next=end;
@@ -229,8 +218,8 @@ namespace csvorbis
 					bisect=(searched+endsearched)/2;
 				}
 
-				seek_helper(bisect);
-				ret=get_next_page(page, -1);
+                seek_helper(bisect, instance);
+                ret = get_next_page(page, -1, instance);
 				if(ret==OV_EREAD) return OV_EREAD;
 				if(ret<0 || page.serialno()!=currentno)
 				{
@@ -242,8 +231,8 @@ namespace csvorbis
 					searched=ret+page.header_len+page.body_len;
 				}
 			}
-			seek_helper(next);
-			ret=get_next_page(page, -1);
+            seek_helper(next, instance);
+            ret = get_next_page(page, -1, instance);
 			if(ret==OV_EREAD) return OV_EREAD;
 
 			if(searched>=end || ret==-1)
@@ -254,7 +243,7 @@ namespace csvorbis
 			}
 			else
 			{
-				ret=bisect_forward_serialno(next, offset, end, page.serialno(), m+1);
+				ret=bisect_forward_serialno(next, offset, end, page.serialno(), m+1, instance);
 				if(ret==OV_EREAD)return OV_EREAD;
 			}
 			offsets[m]=begin;
@@ -263,7 +252,7 @@ namespace csvorbis
 
 		// uses the local ogg_stream storage in vf; this is important for
 		// non-streaming input sources
-		public int fetch_headers(Info vi, Comment vc, int[] serialno, Page og_ptr)
+        public int fetch_headers(Info vi, Comment vc, int[] serialno, Page og_ptr, VorbisFileInstance instance)
 		{
 			//System.err.println("fetch_headers");
 			Page og=new Page();
@@ -272,7 +261,7 @@ namespace csvorbis
 
 			if(og_ptr==null)
 			{
-				ret=get_next_page(og, CHUNKSIZE);
+                ret = get_next_page(og, CHUNKSIZE, instance);
 				if(ret==OV_EREAD)return OV_EREAD;
 				if(ret<0) return OV_ENOTVORBIS;
 				og_ptr=og;
@@ -280,7 +269,7 @@ namespace csvorbis
   
 			if(serialno!=null)serialno[0]=og_ptr.serialno();
 
-			os.init(og_ptr.serialno());
+			instance.os.init(og_ptr.serialno());
   
 			// extract the initial header from the first page and verify that the
 			// Ogg bitstream is in fact Vorbis data
@@ -291,10 +280,10 @@ namespace csvorbis
 			int i=0;
 			while(i<3)
 			{
-				os.pagein(og_ptr);
+                instance.os.pagein(og_ptr);
 				while(i<3)
 				{
-					int result=os.packetout(op);
+                    int result = instance.os.packetout(op);
 					if(result==0)break;
 					if(result==-1)
 					{
@@ -302,7 +291,7 @@ namespace csvorbis
 						//goto bail_header;
 						vi.clear();
 						vc.clear();
-						os.clear();
+                        instance.os.clear();
 						return -1;
 					}
 					if(vi.synthesis_headerin(vc, op)!=0)
@@ -311,19 +300,19 @@ namespace csvorbis
 						//goto bail_header;
 						vi.clear();
 						vc.clear();
-						os.clear();
+                        instance.os.clear();
 						return -1;
 					}
 					i++;
 				}
 				if(i<3)
-					if(get_next_page(og_ptr, 1)<0)
+					if(get_next_page(og_ptr, 1, instance)<0)
 					{
 						Console.Error.WriteLine("Missing header in logical bitstream.");
 						//goto bail_header;
 						vi.clear();
 						vc.clear();
-						os.clear();
+                        instance.os.clear();
 						return -1;
 					}
 			}
@@ -334,7 +323,8 @@ namespace csvorbis
 		// vorbis_info structs and PCM positions.  Only called by the seekable
 		// initialization (local stream storage is hacked slightly; pay
 		// attention to how that's done)
-		public void prefetch_all_headers(Info first_i,Comment first_c, int dataoffset)
+		public void prefetch_all_headers(Info first_i,Comment first_c, int dataoffset,
+            VorbisFileInstance instance)
 		{
 			Page og=new Page();
 			int ret;
@@ -361,8 +351,8 @@ namespace csvorbis
 				else
 				{
 					// seek to the location of the initial header
-					seek_helper(offsets[i]); //!!!
-					if(fetch_headers(vi[i], vc[i], null, null)==-1)
+                    seek_helper(offsets[i], instance); //!!!
+                    if (fetch_headers(vi[i], vc[i], null, null, instance) == -1)
 					{
 						Console.Error.WriteLine("Error opening logical bitstream #"+(i+1)+"\n");
 						dataoffsets[i]=-1;
@@ -370,18 +360,18 @@ namespace csvorbis
 					else
 					{
 						dataoffsets[i]=offset;
-						os.clear();
+						instance.os.clear();
 					}
 				}
 
 				// get the serial number and PCM length of this link. To do this,
 				// get the last page of the stream
 				long end=offsets[i+1]; //!!!
-				seek_helper(end);
+                seek_helper(end, instance);
 
 				while(true)
 				{
-					ret=get_prev_page(og);
+					ret=get_prev_page(og, instance);
 					if(ret==-1)
 					{
 						// this should not be possible
@@ -403,6 +393,7 @@ namespace csvorbis
 
 		int open_seekable()
 		{
+            VorbisFileInstance instance = makeInstance();
 			Info initial_i=new Info();
 			Comment initial_c=new Comment();
 			int serialno;
@@ -412,10 +403,10 @@ namespace csvorbis
 			Page og=new Page();
 			// is this even vorbis...?
 			int[] foo=new int[1];
-			ret=fetch_headers(initial_i, initial_c, foo, null);
+            ret = fetch_headers(initial_i, initial_c, foo, null, instance);
 			serialno=foo[0];
 			dataoffset=(int)offset; //!!
-			os.clear();
+			instance.os.clear();
 			if(ret==-1)return(-1);
 			// we can seek, so set out learning all about this file
 			skable=true;
@@ -426,13 +417,13 @@ namespace csvorbis
 			end=offset;
 			// We get the offset for the last page of the physical bitstream.
 			// Most OggVorbis files will contain a single logical bitstream
-			end=get_prev_page(og);
+			end=get_prev_page(og, instance);
 			// moer than one logical bitstream?
 			if(og.serialno()!=serialno)
 			{
 				// Chained bitstream. Bisect-search each logical bitstream
 				// section.  Do so based on serial number only
-				if(bisect_forward_serialno(0,0,end+1,serialno,0)<0)
+				if(bisect_forward_serialno(0,0,end+1,serialno,0, instance)<0)
 				{
 					clear();
 					return OV_EREAD;
@@ -441,24 +432,20 @@ namespace csvorbis
 			else
 			{
 				// Only one logical bitstream
-				if(bisect_forward_serialno(0,end,end+1,serialno,0)<0)
+				if(bisect_forward_serialno(0,end,end+1,serialno,0, instance)<0)
 				{
 					clear();
 					return OV_EREAD;
 				}
 			}
-			prefetch_all_headers(initial_i, initial_c, dataoffset);
+			prefetch_all_headers(initial_i, initial_c, dataoffset, instance);
 			//return(raw_seek(0));
             return 0;
 		}
 
         public VorbisFileInstance makeInstance()
         {
-            VorbisFileInstance instance = new VorbisFileInstance();
-            instance.vorbisFile = this;
-
-            instance.raw_seek(0);
-
+            VorbisFileInstance instance = new VorbisFileInstance(this);
             return instance;
         }
 
@@ -484,9 +471,9 @@ namespace csvorbis
 		// clear out the OggVorbis_File struct
 		int clear()
 		{
-			vb.clear();
+			/*vb.clear();
 			vd.clear();
-			os.clear();
+			os.clear();*/
     
 			if(vi!=null && links!=0)
 			{
@@ -502,7 +489,7 @@ namespace csvorbis
 			if(pcmlengths!=null)pcmlengths=null;
 			if(serialnos!=null)serialnos=null;
 			if(offsets!=null)offsets=null;
-			oy.clear();
+			//oy.clear();
 			//if(datasource!=null)(vf->callbacks.close_func)(vf->datasource);
 			//memset(vf,0,sizeof(OggVorbis_File));
 			return(0);
@@ -583,7 +570,7 @@ namespace csvorbis
 			datasource=iis;
 			//callbacks = _callbacks;
 			// init the framing state
-			oy.init();
+            //instance.oy.init();
 
 			// perhaps some data was previously read into a buffer for testing
 			// against other stream types.  Allow initialization from this
@@ -591,9 +578,10 @@ namespace csvorbis
 			// stream)
 			if(initial!=null)
 			{
-				int index=oy.buffer(ibytes);
-				Array.Copy(initial, 0, oy.data, index, ibytes);
-				oy.wrote(ibytes);
+                // CWL: Doesn't seem needed
+                /*int index = instance.oy.buffer(ibytes);
+                Array.Copy(initial, 0, instance.oy.data, index, ibytes);
+                instance.oy.wrote(ibytes);*/
 			}
 			// can we seek? Stevens suggests the seek test was portable
 			if(iis.CanSeek == true)

@@ -97,6 +97,7 @@ namespace DragonOgg.Interactive
         /// </summary>
         public void Dispose()
         {
+            AL.SourceStop(Source);
             if(Buffers != null)
                 AL.DeleteBuffers(Buffers);
 

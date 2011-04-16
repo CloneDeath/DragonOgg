@@ -116,6 +116,7 @@ namespace DragonOgg.Interactive
             if(launchThread)
             {
                 UpdateThread = new Thread(RunUpdateLoop);
+                UpdateThread.IsBackground = true;
                 UpdateThread.Start();
             }
             else
@@ -171,13 +172,19 @@ namespace DragonOgg.Interactive
         /// </summary>
         public void RunUpdateLoop()
         {
-            while (RunUpdates)
+            ProcessThread mainThread = Process.GetCurrentProcess().Threads[0];
+
+            while (RunUpdates && (Thread.CurrentThread.ThreadState == System.Threading.ThreadState.Running
+                || Thread.CurrentThread.ThreadState == System.Threading.ThreadState.Background))
             {
                 Update();
                 // TODO: Is 1ms long enough to still have good performance outside
                 // of the audio?
                 Thread.Sleep(1);
             }
+
+            if (Thread.CurrentThread.ThreadState != System.Threading.ThreadState.Background)
+                throw new Exception();
         }
 
         /// <summary>
@@ -188,7 +195,7 @@ namespace DragonOgg.Interactive
             try
             {
                 RunUpdates = false;
-                UpdateThread.Abort();
+                UpdateThread.Join();
             }
             catch (Exception e)
             { }

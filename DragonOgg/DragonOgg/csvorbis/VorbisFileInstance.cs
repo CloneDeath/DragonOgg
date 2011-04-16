@@ -3,6 +3,9 @@
 //  
 //  Author:
 //      Caleb Leak (04.05.2011)
+//      caleb@embergames.net
+//      www.EmberGames.net
+//
 // 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -33,7 +36,36 @@ namespace csvorbis
         int current_serialno;
         int current_link;
 
+        public float bittrack;
+        public float samptrack;
+
+        public StreamState os;
+        public DspState vd;
+        public Block vb;
+
         public VorbisFile vorbisFile;
+
+        public long lastStreamPosition;
+
+        public SyncState oy;
+
+        public VorbisFileInstance(VorbisFile sourceFile)
+        {
+            vorbisFile = sourceFile;
+
+            oy = new SyncState();
+            bittrack = 0;
+            samptrack = 0;
+
+            os = new StreamState(); // take physical pages, weld into a logical
+            // stream of packets
+            vd = new DspState(); // central working state for 
+            // the packet->PCM decoder
+            vb = new Block(vd);     // local working space for packet->PCM decode
+
+            raw_seek(0);
+            lastStreamPosition = sourceFile.datasource.Position;
+        }
 
         // fetch and process a packet.  Handles the case where we're at a
         // bitstream boundary and dumps the decoding machine.  If the decoding
@@ -58,7 +90,7 @@ namespace csvorbis
                 if (decode_ready)
                 {
                     Packet op = new Packet();
-                    int result = vorbisFile.os.packetout(op);
+                    int result = os.packetout(op);
                     long granulepos;
                     // if(result==-1)return(-1); // hole in the data. For now, swallow
                     // and go. We'll need to add a real
@@ -67,7 +99,7 @@ namespace csvorbis
                     {
                         // got a packet.  process it
                         granulepos = op.granulepos;
-                        if (vorbisFile.vb.synthesis(op) == 0)
+                        if (vb.synthesis(op) == 0)
                         { // lazy check for lazy
                             // header handling.  The
                             // header packets aren't
@@ -77,10 +109,10 @@ namespace csvorbis
                             // reject them
                             // suck in the synthesis data and track bitrate
                             {
-                                int oldsamples = vorbisFile.vd.synthesis_pcmout(null, null);
-                                vorbisFile.vd.synthesis_blockin(vorbisFile.vb);
-                                vorbisFile.samptrack += vorbisFile.vd.synthesis_pcmout(null, null) - oldsamples;
-                                vorbisFile.bittrack += op.bytes * 8;
+                                int oldsamples = vd.synthesis_pcmout(null, null);
+                                vd.synthesis_blockin(vb);
+                                samptrack += vd.synthesis_pcmout(null, null) - oldsamples;
+                                bittrack += op.bytes * 8;
                             }
 
                             // update the pcm vorbisFile.offset.
@@ -100,7 +132,7 @@ namespace csvorbis
                                 // So, we need a previous granulepos from an in-sequence page
                                 // to have a reference point.  Thus the !op.e_o_s clause above
 
-                                samples = vorbisFile.vd.synthesis_pcmout(null, null);
+                                samples = vd.synthesis_pcmout(null, null);
                                 granulepos -= samples;
                                 for (int i = 0; i < link; i++)
                                 {
@@ -114,11 +146,11 @@ namespace csvorbis
                 }
 
                 if (readp == 0) return (0);
-                if (vorbisFile.get_next_page(og, -1) < 0) return (0); // eof. leave unitialized
+                if (vorbisFile.get_next_page(og, -1, this) < 0) return (0); // eof. leave unitialized
 
                 // bitrate tracking; add the header's bytes here, the body bytes
                 // are done by packet above
-                vorbisFile.bittrack += og.header_len * 8;
+                bittrack += og.header_len * 8;
 
                 // has our decoding just traversed a bitstream boundary?
                 if (decode_ready)
@@ -158,8 +190,8 @@ namespace csvorbis
                         // leave machine uninitialized
                         current_link = i;
 
-                        vorbisFile.os.init(current_serialno);
-                        vorbisFile.os.reset();
+                        os.init(current_serialno);
+                        os.reset();
 
                     }
                     else
@@ -167,7 +199,7 @@ namespace csvorbis
                         // we're streaming
                         // fetch the three header packets, build the info struct
                         int[] foo = new int[1];
-                        int ret = vorbisFile.fetch_headers(vorbisFile.vi[0], vorbisFile.vc[0], foo, og);
+                        int ret = vorbisFile.fetch_headers(vorbisFile.vi[0], vorbisFile.vc[0], foo, og, this);
                         current_serialno = foo[0];
                         if (ret != 0) return ret;
                         current_link++;
@@ -175,7 +207,7 @@ namespace csvorbis
                     }
                     make_decode_ready();
                 }
-                vorbisFile.os.pagein(og);
+                os.pagein(og);
             }
         }
 
@@ -184,10 +216,10 @@ namespace csvorbis
         public int bitrate_instant()
         {
             int _link = (vorbisFile.skable ? current_link : 0);
-            if (vorbisFile.samptrack == 0) return (-1);
-            int ret = (int)(vorbisFile.bittrack / vorbisFile.samptrack * vorbisFile.vi[_link].rate + .5);
-            vorbisFile.bittrack = 0.0f;
-            vorbisFile.samptrack = 0.0f;
+            if (samptrack == 0) return (-1);
+            int ret = (int)(bittrack / samptrack * vorbisFile.vi[_link].rate + .5);
+            bittrack = 0.0f;
+            samptrack = 0.0f;
             return (ret);
         }
 
@@ -212,8 +244,8 @@ namespace csvorbis
 #else
             if (decode_ready) Environment.Exit(1);
 #endif
-            vorbisFile.vd.synthesis_init(vorbisFile.vi[0]);
-            vorbisFile.vb.init(vorbisFile.vd);
+            vd.synthesis_init(vorbisFile.vi[0]);
+            vb.init(vd);
             decode_ready = true;
             return (0);
         }
@@ -221,12 +253,12 @@ namespace csvorbis
         // clear out the current logical bitstream decoder
         void decode_clear()
         {
-            vorbisFile.os.clear();
-            vorbisFile.vd.clear();
-            vorbisFile.vb.clear();
+            os.clear();
+            vd.clear();
+            vb.clear();
             decode_ready = false;
-            vorbisFile.bittrack = 0.0f;
-            vorbisFile.samptrack = 0.0f;
+            bittrack = 0.0f;
+            samptrack = 0.0f;
         }
 
         // seek to an vorbisFile.offset relative to the *compressed* data. This also
@@ -253,7 +285,7 @@ namespace csvorbis
             decode_clear();
 
             // seek
-            vorbisFile.seek_helper(pos);
+            vorbisFile.seek_helper(pos, this);
 
             // we need to make sure the pcm_offset is set.  We use the
             // _fetch_packet helper to process one packet with readp set, then
@@ -356,8 +388,8 @@ namespace csvorbis
                         bisect = (end + begin) / 2;
                     }
 
-                    vorbisFile.seek_helper(bisect);
-                    ret = vorbisFile.get_next_page(og, end - bisect);
+                    vorbisFile.seek_helper(bisect, this);
+                    ret = vorbisFile.get_next_page(og, end - bisect, this);
 
                     if (ret == -1)
                     {
@@ -411,11 +443,11 @@ namespace csvorbis
                 int target = (int)(pos - pcm_offset);
                 float[][][] _pcm = new float[1][][];
                 int[] _index = new int[getInfo(-1).channels];
-                int samples = vorbisFile.vd.synthesis_pcmout(_pcm, _index);
+                int samples = vd.synthesis_pcmout(_pcm, _index);
                 pcm = _pcm[0];
 
                 if (samples > target) samples = target;
-                vorbisFile.vd.synthesis_read(samples);
+                vd.synthesis_read(samples);
                 pcm_offset += samples;
 
                 if (samples < target)
@@ -603,6 +635,9 @@ namespace csvorbis
         public int read(byte[] buffer, int length,
             int bigendianp, int word, int sgned, int[] bitstream)
         {
+            vorbisFile.datasource.Position = lastStreamPosition;
+            //vorbisFile.oy = oy;
+
             int host_endian = vorbisFile.host_is_big_endian();
             int index = 0;
 
@@ -613,7 +648,7 @@ namespace csvorbis
                     float[][] pcm;
                     float[][][] _pcm = new float[1][][];
                     int[] _index = new int[getInfo(-1).channels];
-                    int samples = vorbisFile.vd.synthesis_pcmout(_pcm, _index);
+                    int samples = vd.synthesis_pcmout(_pcm, _index);
                     pcm = _pcm[0];
                     if (samples != 0)
                     {
@@ -714,9 +749,10 @@ namespace csvorbis
                             }
                         }
 
-                        vorbisFile.vd.synthesis_read(samples);
+                        vd.synthesis_read(samples);
                         pcm_offset += samples;
                         if (bitstream != null) bitstream[0] = current_link;
+                        lastStreamPosition = vorbisFile.datasource.Position;
                         return (samples * bytespersample);
                     }
                 }
@@ -725,13 +761,16 @@ namespace csvorbis
                 switch (process_packet(1))
                 {
                     case 0:
+                        lastStreamPosition = vorbisFile.datasource.Position;
                         return (0);
                     case -1:
+                        lastStreamPosition = vorbisFile.datasource.Position;
                         return -1;
                     default:
                         break;
                 }
             }
+            lastStreamPosition = vorbisFile.datasource.Position;
             return -1;
         }
     }
