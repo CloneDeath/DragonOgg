@@ -165,12 +165,12 @@ namespace DragonOgg.MediaPlayer
 			else
 			{
 				m_Position++;
-				if (m_Position >= m_FileHeap.Count)
+				if (m_Position > m_FileHeap.Count)
 				{
 					if (m_Repeat) { m_Position = 0; } else { return null; }
 				}
 			}
-			m_CurrentFile = (OggPlaylistFile)m_FileHeap[m_Position];
+			m_CurrentFile = (OggPlaylistFile)m_FileHeap[m_Position-1];
 			m_CurrentFile.Played = true;
 			if (!m_CurrentFile.Cached) { m_CurrentFile.CacheFile(); }
 			return m_CurrentFile.File;
@@ -263,7 +263,7 @@ namespace DragonOgg.MediaPlayer
 		/// <param name="Order">
 		/// A <see cref="System.Int32"/> containing a value indicating it's order
 		/// </param>
-		OggPlaylistFile(OggFile f, int Order)
+		public OggPlaylistFile(OggFile f, int Order)
 		{
 			m_File = f; 
 			m_OrderNum = Order; 
@@ -281,7 +281,7 @@ namespace DragonOgg.MediaPlayer
 		/// <param name="Order">
 		/// A <see cref="System.Int32"/> containg a value indicating it's order
 		/// </param>
-		OggPlaylistFile(string Path, int Order)
+		public OggPlaylistFile(string Path, int Order)
 		{
 			m_File = null;
 			m_OrderNum = Order;
@@ -354,7 +354,7 @@ namespace DragonOgg.MediaPlayer
 		/// </summary>
 		int IComparable.CompareTo(object obj)
 		{
-			if (typeof(object)!=typeof(OggPlaylistFile)) { throw new System.InvalidCastException("OggPlaylistFile:CompareTo obj not an OggPlaylistFile"); }
+			if (obj.GetType() !=typeof(OggPlaylistFile)) { throw new System.InvalidCastException("OggPlaylistFile:CompareTo obj not an OggPlaylistFile"); }
 			OggPlaylistFile tmp = (OggPlaylistFile) obj;
 			if (tmp.OrderNum>this.OrderNum) { return 1; }
 			if (tmp.OrderNum<this.OrderNum) { return -1; }

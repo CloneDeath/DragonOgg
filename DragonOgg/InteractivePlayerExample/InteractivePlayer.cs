@@ -38,7 +38,7 @@ namespace InteractivePlayerExample
     /// These features target interactive applications such as games.
     /// 
     /// This samples a short guitar rift and also a "boing" sound effect in the
-    /// background.
+    /// background.  It ends by playing several overlapping "boing"s.
     /// </summary>
     class InteractivePlayer
     {

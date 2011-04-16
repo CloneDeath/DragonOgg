@@ -172,19 +172,13 @@ namespace DragonOgg.Interactive
         /// </summary>
         public void RunUpdateLoop()
         {
-            ProcessThread mainThread = Process.GetCurrentProcess().Threads[0];
-
-            while (RunUpdates && (Thread.CurrentThread.ThreadState == System.Threading.ThreadState.Running
-                || Thread.CurrentThread.ThreadState == System.Threading.ThreadState.Background))
+            while (RunUpdates)
             {
                 Update();
                 // TODO: Is 1ms long enough to still have good performance outside
                 // of the audio?
                 Thread.Sleep(1);
             }
-
-            if (Thread.CurrentThread.ThreadState != System.Threading.ThreadState.Background)
-                throw new Exception();
         }
 
         /// <summary>

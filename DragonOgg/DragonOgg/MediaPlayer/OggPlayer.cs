@@ -123,15 +123,85 @@ namespace DragonOgg.MediaPlayer
 			#endif
 		}
 		#endregion
-		
-		#region "Playback Control"
-		/// <summary>
+
+        #region "Deprecated Playback Control"
+        /// <summary>
+        /// Start playing the current file
+        /// </summary>
+        /// <returns>
+        /// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
+        /// </returns>
+        [Obsolete("Method has been replaced with Play()", false)]
+        public OggPlayerCommandReturn Playback_Play()
+        {
+            return Play();
+        }
+
+        /// <summary>
+        /// Stop playback. 
+        /// Only valid if the player is playing or paused
+        /// </summary>
+        /// <returns>
+        /// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
+        /// </returns>
+        [Obsolete("Method has been replaced with Stop()", false)]
+        public OggPlayerCommandReturn Playback_Stop()
+        {
+            return Stop();
+        }
+
+        /// <summary>
+        /// Pause playback
+        /// Only valid if the player is playing
+        /// </summary>
+        /// <returns>
+        /// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
+        /// </returns>
+        [Obsolete("Method has been replaced with Pause()", false)]
+        public OggPlayerCommandReturn Playback_Pause()
+        {
+            return Pause();
+        }
+
+        /// <summary>
+        /// Unpause playback
+        /// Only valid if the player is paused
+        /// </summary>
+        /// <returns>
+        /// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
+        /// </returns>
+        [Obsolete("Method has been replaced with Unpause()", false)]
+        public OggPlayerCommandReturn Playback_UnPause()
+        {
+            return Unpause();
+        }
+
+        /// <summary>
+        /// Seek to a time
+        /// Only valid if the player is playing or paused
+        /// </summary>
+        /// <param name="RequestedTime">
+        /// A <see cref="System.Single"/> indicating the position in seconds within the file to seek to
+        /// </param>
+        /// <returns>
+        /// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
+        /// </returns>
+        [Obsolete("Method has been replaced with Seek()", false)]
+        public OggPlayerCommandReturn Playback_Seek(float RequestedTime)
+        {
+            return Seek(RequestedTime);
+        }
+
+        #endregion
+
+        #region "Playback Control"
+        /// <summary>
 		/// Start playing the current file
 		/// </summary>
 		/// <returns>
 		/// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
 		/// </returns>
-		public abstract OggPlayerCommandReturn Playback_Play();
+		public abstract OggPlayerCommandReturn Play();
 		/// <summary>
 		/// Stop playback. 
 		/// Only valid if the player is playing or paused
@@ -139,7 +209,7 @@ namespace DragonOgg.MediaPlayer
 		/// <returns>
 		/// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
 		/// </returns>
-		public abstract OggPlayerCommandReturn Playback_Stop();
+		public abstract OggPlayerCommandReturn Stop();
 		/// <summary>
 		/// Pause playback
 		/// Only valid if the player is playing
@@ -147,7 +217,7 @@ namespace DragonOgg.MediaPlayer
 		/// <returns>
 		/// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
 		/// </returns>
-		public abstract OggPlayerCommandReturn Playback_Pause();
+		public abstract OggPlayerCommandReturn Pause();
 		/// <summary>
 		/// Unpause playback
 		/// Only valid if the player is paused
@@ -155,7 +225,7 @@ namespace DragonOgg.MediaPlayer
 		/// <returns>
 		/// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
 		/// </returns>
-		public abstract OggPlayerCommandReturn Playback_UnPause();
+		public abstract OggPlayerCommandReturn Unpause();
 				/// <summary>
 		/// Seek to a time
 		/// Only valid if the player is playing or paused
@@ -166,7 +236,7 @@ namespace DragonOgg.MediaPlayer
 		/// <returns>
 		/// An <see cref="OggPlayerCommandReturn"/> indicating the result of the operation
 		/// </returns>
-		public abstract OggPlayerCommandReturn Playback_Seek(float RequestedTime);
+		public abstract OggPlayerCommandReturn Seek(float RequestedTime);
 		#endregion
 		
 		#region "Timing"

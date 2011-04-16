@@ -105,7 +105,7 @@ namespace DragonOgg.MediaPlayer
 		/// </summary>
 		public override void Dispose ()
 		{
-			this.Playback_Stop();
+			this.Stop();
 			AL.DeleteBuffers(m_Buffers);
 			if (!DestroySource()) { throw new OggPlayerSourceException("Source destruction failed"); }
 			if (m_Context!=null) { m_Context.Dispose(); m_Context = null; }
@@ -138,7 +138,7 @@ namespace DragonOgg.MediaPlayer
 			return SetCurrentFile(new OggFile(NewFilename));	
 		}
 		
-		public override OggPlayerCommandReturn Playback_Play() 
+		public override OggPlayerCommandReturn Play() 
 		{
 			// We can only play if we're stopped (this should also stop us trying to play invalid files as we'll then be 'Waiting' or 'Error' rather than stopped)
 			if (m_PlayerState == OggPlayerStatus.Stopped)
@@ -183,13 +183,13 @@ namespace DragonOgg.MediaPlayer
 				m_LastError = ALError.NoError;
 				// Spawn a new player thread
 				StateChange(OggPlayerStatus.Playing, OggPlayerStateChanger.UserRequest);
-				new Thread(new ThreadStart(Player_Thread)).Start();
+				new Thread(new ThreadStart(PlayerThread)).Start();
 				return OggPlayerCommandReturn.Success; 
 			}
-			// If we're paused we'll be nice to the user and automatically call the Playback_UnPause function, which they should have done in the first place
+			// If we're paused we'll be nice to the user and automatically call the Unpause function, which they should have done in the first place
 			else if (m_PlayerState == OggPlayerStatus.Paused)
 			{
-				Playback_UnPause();
+				Unpause();
 				return OggPlayerCommandReturn.Success;
 			}
 			else if (m_PlayerState == OggPlayerStatus.Waiting)
@@ -203,7 +203,7 @@ namespace DragonOgg.MediaPlayer
 		}
 		
 		// Player thread
-		private void Player_Thread()
+		private void PlayerThread()
 		{
 			bool Running = true; bool ReachedEOF = false; bool UnderRun = false;
 			
@@ -358,7 +358,7 @@ namespace DragonOgg.MediaPlayer
 				else 
 				{
 					// Some other state, abort the playback 'cos we shouldn't
-					// be in the Player_Thread in this case
+					// be in the PlayerThread in this case
 					Running = false;
 				}
 				// Allow other shizzle to execute
@@ -366,7 +366,7 @@ namespace DragonOgg.MediaPlayer
 			}
 		}
 		
-		public override OggPlayerCommandReturn Playback_Stop()
+		public override OggPlayerCommandReturn Stop()
 		{
 			if (!((m_PlayerState == OggPlayerStatus.Paused)||(m_PlayerState == OggPlayerStatus.Playing))) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
 			// Stop the source and set the state to stop
@@ -393,7 +393,7 @@ namespace DragonOgg.MediaPlayer
 			return OggPlayerCommandReturn.Success;
 		}
 		
-		public override OggPlayerCommandReturn Playback_Pause()
+		public override OggPlayerCommandReturn Pause()
 		{
 			if (!(m_PlayerState == OggPlayerStatus.Playing)) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
 			lock (OALLocker)
@@ -405,7 +405,7 @@ namespace DragonOgg.MediaPlayer
 			
 		}
 		
-		public override OggPlayerCommandReturn Playback_UnPause()
+		public override OggPlayerCommandReturn Unpause()
 		{
 			if (!(m_PlayerState == OggPlayerStatus.Paused)) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
 			lock (OALLocker)
@@ -416,7 +416,7 @@ namespace DragonOgg.MediaPlayer
 			return OggPlayerCommandReturn.Success;
 		}
 		
-		public override OggPlayerCommandReturn Playback_Seek(float RequestedTime)
+		public override OggPlayerCommandReturn Seek(float RequestedTime)
 		{
 			if (!((m_PlayerState == OggPlayerStatus.Playing)||(m_PlayerState == OggPlayerStatus.Playing))) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
 			OggPlayerCommandReturn retVal = OggPlayerCommandReturn.Error;

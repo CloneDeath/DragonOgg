@@ -45,7 +45,7 @@ namespace DragonOgg.MediaPlayer
 		private long m_BufferSize;			// Size of individual buffer segments
 		private long m_MaxTotalBufferSize;	// Maximum size in bytes of the buffer heap
 		private int m_PrebufferDelay;		// How long to wait (in ms) between a playback or seek command and actual initialisation of the playback thread to allow for buffering
-		private bool m_PauseBuffer; 		// Whether the buffering thread should be paused as well as the playing thread on Playback_Pause
+		private bool m_PauseBuffer; 		// Whether the buffering thread should be paused as well as the playing thread on Pause
 		
 		// Data storage stuff
 		private FloatQueue m_BufferedTimeHeap;
@@ -112,7 +112,7 @@ namespace DragonOgg.MediaPlayer
 		/// </summary>
 		public override void Dispose ()
 		{
-			this.Playback_Stop();
+			this.Stop();
 			ClearBuffers();
 			if (!DestroySource()) { throw new OggPlayerSourceException("Source destruction failed"); }
 			if (m_Context!=null) { m_Context.Dispose(); m_Context = null; }
@@ -127,7 +127,7 @@ namespace DragonOgg.MediaPlayer
 		/// </summary>
 		~OggPlayerVBN()
 		{
-			this.Playback_Stop();
+			this.Stop();
 			ClearBuffers();
 			if (!DestroySource()) { throw new OggPlayerSourceException("Source destruction failed"); }
 			if (m_Context!=null) { m_Context.Dispose(); m_Context = null; }
@@ -263,7 +263,7 @@ namespace DragonOgg.MediaPlayer
 					if (m_ReachedEOF)
 					{
 						if (AL.GetSourceState(m_Source)!=ALSourceState.Stopped) { AL.SourceStop(m_Source); }
-						Playback_Stop(true);
+						Stop(true);
 						StateChange(OggPlayerStatus.Stopped, OggPlayerStateChanger.EndOfFile);
 						SendMessage(OggPlayerMessageType.PlaybackEndOfFile);
 						Running = false;
@@ -330,7 +330,7 @@ namespace DragonOgg.MediaPlayer
 			}
 		}
 		
-		public override OggPlayerCommandReturn Playback_Play()
+		public override OggPlayerCommandReturn Play()
 		{
 			if (m_CurrentFile==null) { return OggPlayerCommandReturn.NoFile; }
 			if (m_PlayerState!=OggPlayerStatus.Stopped) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
@@ -355,7 +355,7 @@ namespace DragonOgg.MediaPlayer
 			return OggPlayerCommandReturn.Success;
 		}
 		
-		public override OggPlayerCommandReturn Playback_Seek(float SeekTime)
+		public override OggPlayerCommandReturn Seek(float SeekTime)
 		{
 			if (!(m_PlayerState==OggPlayerStatus.Playing)||(m_PlayerState==OggPlayerStatus.Paused)||(m_PlayerState==OggPlayerStatus.Buffering)) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
 			
@@ -409,8 +409,8 @@ namespace DragonOgg.MediaPlayer
 			return OggPlayerCommandReturn.Success;
 		}
 		
-		public override OggPlayerCommandReturn Playback_Stop() { return Playback_Stop(false); }
-		private OggPlayerCommandReturn Playback_Stop(bool Internal)
+		public override OggPlayerCommandReturn Stop() { return Stop(false); }
+		private OggPlayerCommandReturn Stop(bool Internal)
 		{
 			if (!(m_PlayerState==OggPlayerStatus.Playing)||(m_PlayerState==OggPlayerStatus.Paused)||(m_PlayerState==OggPlayerStatus.Buffering)) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
 			// Request stop
@@ -429,7 +429,7 @@ namespace DragonOgg.MediaPlayer
 			return OggPlayerCommandReturn.Success;
 		}
 		
-		public override OggPlayerCommandReturn Playback_UnPause()
+		public override OggPlayerCommandReturn Unpause()
 		{
 			if (m_PlayerState!=OggPlayerStatus.Paused) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
 			// Cancel the pause request
@@ -447,7 +447,7 @@ namespace DragonOgg.MediaPlayer
 			return OggPlayerCommandReturn.Success;
 		}
 		
-		public override OggPlayerCommandReturn Playback_Pause()
+		public override OggPlayerCommandReturn Pause()
 		{
 			if (m_PlayerState!=OggPlayerStatus.Playing && m_PlayerState!=OggPlayerStatus.Buffering) { return OggPlayerCommandReturn.InvalidCommandInThisPlayerState; }
 			// Pause the source
