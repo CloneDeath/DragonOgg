@@ -1,26 +1,7 @@
-// 
-//  OggPlaylist.cs
-//  
-//  Author:
-//       dragon@the-dragons-nest.co.uk
-// 
-//  Copyright (c) 2010 Matthew Harris
-// 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Collections;
 
 namespace DragonOgg.MediaPlayer
 {
@@ -31,7 +12,7 @@ namespace DragonOgg.MediaPlayer
 	public class OggPlaylist : IEnumerable
 	{
 		
-		private ArrayList m_FileHeap;		// Array of files in the playlist
+		private List<OggPlaylistFile> m_FileHeap;		// Array of files in the playlist
 		private bool m_Repeat;				// Whether the playlist should repeat
 		private bool m_Random;				// Whether the playlist should use a random order for playing
 		private int m_Position;			// Position of the playlist within the array
@@ -65,7 +46,7 @@ namespace DragonOgg.MediaPlayer
 		/// <summary>
 		/// The position within the playlist. This is not necessarily the order number of the current track
 		/// </summary>
-		public int Position { get { return Position; } }
+		public int Position { get { return m_Position; } }
 		/// <summary>
 		/// The order number of the current track
 		/// </summary>
@@ -103,7 +84,7 @@ namespace DragonOgg.MediaPlayer
 		// Constructor
 		public OggPlaylist()
 		{
-			m_FileHeap = new ArrayList();
+			m_FileHeap = new List<OggPlaylistFile>();
 			m_CurrentFile = null;
 			m_Position = 0;
 			m_AutoOrder = true;
@@ -145,6 +126,15 @@ namespace DragonOgg.MediaPlayer
 			m_FileHeap.Remove(Item);
 			if (m_AutoOrder) { m_FileHeap.Sort(); }
 		}
+
+		/// <summary>
+		/// Remove all files from the Playlist.
+		/// </summary>
+		public void RemoveAll()
+		{
+			if (m_FileHeap == null) return;
+			m_FileHeap.Clear();
+		}
 		
 		/// <summary>
 		/// Retrieves the next file for playback & advance the internal pointers
@@ -160,17 +150,17 @@ namespace DragonOgg.MediaPlayer
 			if (m_AutoUncache) { if (m_PreviousFile!=null) { m_PreviousFile.UnCacheFile(); } }
 			if (m_Random)
 			{
-				m_Position = m_RandomGenerator.Next(m_FileHeap.Count-1);	
+				m_Position = m_RandomGenerator.Next(m_FileHeap.Count);	
 			}
 			else
 			{
 				m_Position++;
-				if (m_Position > m_FileHeap.Count)
+				if (m_Position >= m_FileHeap.Count)
 				{
 					if (m_Repeat) { m_Position = 0; } else { return null; }
 				}
 			}
-			m_CurrentFile = (OggPlaylistFile)m_FileHeap[m_Position-1];
+			m_CurrentFile = (OggPlaylistFile)m_FileHeap[m_Position];
 			m_CurrentFile.Played = true;
 			if (!m_CurrentFile.Cached) { m_CurrentFile.CacheFile(); }
 			return m_CurrentFile.File;
@@ -197,7 +187,7 @@ namespace DragonOgg.MediaPlayer
 	public class OggPlaylistEnumerator : IEnumerator
 	{
 		
-		private ArrayList m_Heap;
+		private List<OggPlaylistFile> m_Heap;
 		private int m_Position;
 		
 		public bool MoveNext()
@@ -213,9 +203,9 @@ namespace DragonOgg.MediaPlayer
 		
 		object IEnumerator.Current { get { return Current; } }
 		
-		public OggFile Current { get { try { return (OggFile) m_Heap[m_Position]; } catch (IndexOutOfRangeException ex) { throw new InvalidOperationException(); } } }
+		public OggFile Current { get { try { return m_Heap[m_Position].File; } catch (IndexOutOfRangeException ex) { throw new InvalidOperationException(); } } }
 		
-		public OggPlaylistEnumerator(ArrayList Heap)
+		public OggPlaylistEnumerator(List<OggPlaylistFile> Heap)
 		{
 			m_Position = -1;
 			m_Heap = Heap;
