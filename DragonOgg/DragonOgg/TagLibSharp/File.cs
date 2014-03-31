@@ -2,31 +2,6 @@
 // File.cs: Provides a basic framework for reading from and writing to
 // a file, as well as accessing basic tagging and media properties.
 //
-// Author:
-//   Brian Nickel (brian.nickel@gmail.com)
-//   Aaron Bockover (abockover@novell.com)
-//
-// Original Source:
-//   tfile.cpp from TagLib
-//
-// Copyright (C) 2005, 2007 Brian Nickel
-// Copyright (C) 2006 Novell, Inc.
-// Copyright (C) 2002,2003 Scott Wheeler (Original Implementation)
-// 
-// This library is free software; you can redistribute it and/or modify
-// it  under the terms of the GNU Lesser General Public License version
-// 2.1 as published by the Free Software Foundation.
-//
-// This library is distributed in the hope that it will be useful, but
-// WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License along with this library; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
-// USA
-//
 
 // Alteration of WriteStream declaration on line 1579 by Matthew Harris to maintain read access for other processes during writing.
 // This is needed to allow TagLibSharp to integrate properly with the DragonOgg library. Remove FileShare.Read to revert to the original form

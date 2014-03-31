@@ -3,7 +3,7 @@ Current Authors:
 
 Previous Authors:
 	Caleb Leak - caleb@embergames.net - www.EmberGames.net (2011-04 - 2014.03)
-	El Dragon - dragon@the-dragons-nest.co.uk (2010.04 - 2011.04)
+	Matthew Harris (aka El Dragon) - dragon@the-dragons-nest.co.uk (2010.04 - 2011.04)
 
 
 This program is free software: you can redistribute it and/or modify
